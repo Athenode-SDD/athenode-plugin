@@ -48,4 +48,4 @@ summary: "Code review settings: review mode, enabled check groups and how many a
 
 ## Custom
 
-_Project-specific review rules go here. Agents follow this section; the init skill never overwrites it._
+_Project-specific review rules go here. Agents follow this section; the `atn-settings` skill never overwrites it._

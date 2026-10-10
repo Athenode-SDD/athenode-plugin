@@ -24,4 +24,4 @@ summary: Development methodology settings plus the project's non-negotiable rule
 
 ## Custom
 
-_Project-specific additions. Agents follow this section; the init skill never overwrites it._
+_Project-specific additions. Agents follow this section; the `atn-settings` skill never overwrites it._
