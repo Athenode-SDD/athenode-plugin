@@ -1,0 +1,232 @@
+---
+name: atn-settings
+description: Use when the project's workflow settings (gitflow, testing, code review, methodology) need to be chosen or changed.
+claudecode:
+  argument-hint: "[category...]"
+  allowed-tools: AskUserQuestion, Bash, Read, Glob, Grep
+codexcli:
+  argument-hint: "[category...]"
+  allowed-tools: Bash, Read, Glob, Grep
+cursor:
+  metadata:
+    argument-hint: "[category...]"
+    allowed-tools: Bash, Read, Glob, Grep
+copilot:
+  argument-hint: "[category...]"
+  allowed-tools:
+    - execute
+    - read
+    - search
+copilotcli:
+  argument-hint: "[category...]"
+  allowed-tools:
+    - execute
+    - read
+    - search
+opencode:
+  allowed-tools:
+    - bash
+    - read
+    - glob
+    - grep
+devin:
+  argument-hint: "[category...]"
+  allowed-tools:
+    - exec
+    - read
+    - glob
+    - grep
+qwencode:
+  argument-hint: "[category...]"
+---
+
+Configure the project's workflow settings (testing, methodology, code review and gitflow, per project) that every other Athenode agent and skill loads, by inspecting the local project read-only, asking category by category and saving the chosen values to the `settings/` files of the project's setup copy.
+
+## Arguments
+
+- Category names (optional): any of `gitflow`, `testing`, `methodology`, `code-review`. Only those categories are reconfigured; without them, step 4 selects what to configure. Other words are ignored.
+
+## Settings file format
+
+Every category file (`gitflow.md`, `testing.md`, `code-review.md`, `methodology.md`) has exactly three sections:
+- `## Parameters` — machine-readable `- key: value` lines, the record of the chosen values. Use only the keys and values listed in step 5c, never invent new ones.
+- `## Rules` — ready-to-follow, imperative English instructions built from the chosen values (see "## Rules fragments" and step 6a). Other agents never interpret Parameters: they load only the `###` subsections of `## Rules` their role needs and follow them. Every file always holds its fixed subsections, in this order:
+  - `gitflow.md`: `### Apply start`, `### Leaf done`, `### Review approved`, `### Apply end`, `### Implementation`.
+  - `testing.md`: `### Planning`, `### Implementation`.
+  - `methodology.md`: `### Spec authoring`, `### Planning`, `### Implementation`.
+  - `code-review.md`: `### Leaf done`, `### Apply end`, `### Review`, `### Findings`.
+- `## Custom` — project-specific additions written by the user. **Never change this section**: keep it byte-for-byte, including its placeholder text.
+
+`SETTINGS.md` holds `- initialized: true|false` under `## Parameters`, the list of category files with a description of this format, and a `## Sub-projects` table mapping repository paths to sub-project settings folders. Sub-project folders hold full category files in the same format.
+
+## Flow
+
+The settings live only in the project's setup copy on the Athenode server: read and write them with `setups_files_get`, `setups_files_list`, `setups_files_create`, `setups_files_update` and `setups_files_delete`, and never create or modify a file in the local repository. Keys and values (such as `review_mode` or `per_leaf`) appear only in the files you write: everything the user sees describes settings and values in plain language, using the questions and descriptions of step 5c. Free-form values that are the user's own data (a branch name, a tag prefix, a template, a number of attempts) are shown as they are. Refer to projects by their repository path, and to the root as "the root (files outside every sub-project)".
+
+1. **Load the current settings** with `setups_files_get`: `settings/SETTINGS.md`, `settings/gitflow.md`, `settings/testing.md`, `settings/code-review.md` and `settings/methodology.md`. List `settings` with `setups_files_list` to find the sub-project folders, then list and load each folder's files the same way.
+   - If a call fails with a 403 or a "not a project copy" error, tell the user to re-run `athenode init` (the CLI command, in a terminal) so this project installs its own setup copy, and stop.
+   - If a root category file is missing, tell the user the setup copy is incomplete (the settings seed has not been applied to it) and stop.
+   - Otherwise parse each file's `## Parameters` lines and the `initialized` flag, and keep every file's full content in memory.
+2. **Inspect the project (read-only)** with Read, Glob, Grep and Bash to ground your recommendations; never modify anything. Look for:
+   - test frameworks and existing tests: `package.json` scripts and dev dependencies, `pom.xml`/`build.gradle*`, `pytest.ini`/`pyproject.toml`, `vitest`/`jest` configs, test directories and `*.test.*`/`*.spec.*`/`*Test.java` files;
+   - e2e tooling: Playwright or Cypress configs and dependencies;
+   - CI configuration: `.github/workflows/*`, `.gitlab-ci.yml`;
+   - the git remote: `git remote -v`;
+   - the default branch: `git symbolic-ref --short refs/remotes/origin/HEAD` (strip the `origin/` prefix), falling back to `git branch --show-current`;
+   - hosting CLIs: `gh --version` and `glab --version`;
+   - tag naming: `git tag --list` (`v1.2.3` means semver tags with prefix `v`);
+   - Conventional Commits usage in `git log --oneline -20`.
+   Turn each relevant finding into a one-line rationale to show next to a recommended option (for example "Vitest and 42 unit test files found").
+3. **Settle the projects**, before any category question.
+   1. Detect candidates: nested git repositories (`find . -mindepth 2 -maxdepth 3 -name .git -not -path '*/node_modules/*'`) and package manifests below the root (`package.json`, `pom.xml`, `build.gradle`, `build.gradle.kts`, `pyproject.toml`, `Cargo.toml`, `go.mod`), excluding anything under `node_modules`, `dist`, `build`, `target`, `.venv` and `.git`, each as a path relative to the root without a leading `./`.
+   2. If there are neither entries in the `## Sub-projects` table nor candidates, use one configuration without asking. Otherwise show the table's repository paths plus the new candidates and ask: "Separate configurations for these projects" (Recommended; on a re-run, recommend keeping the current list) / "Separate configurations, but remove some" (then a multiple-choice question over the entries to remove) / "Separate configurations, and add others" (then an open question for the extra paths) / "One configuration for the whole repository". One configuration removes every sub-project in the table (its folder is deleted in step 6c).
+   3. Each sub-project gets the folder `settings/<folder>/`: its repository path with `/` replaced by `-` and every character outside `A-Z`, `a-z`, `0-9`, `.`, `_`, `-` replaced by `-` (each path segment must match `^[A-Za-z0-9._-]+$`), with `-2`, `-3` and so on appended on a clash. Sub-projects already in the table keep their folder names.
+   4. The project list is the root alone for one configuration, otherwise the root followed by each sub-project in list order. The root's settings (in `settings/`) apply to every file outside the sub-projects. Sub-projects that weren't in the table before are new.
+4. **Select what to configure.**
+   - If it is the first run (`initialized: false`) and no category names were given: every project, all four categories.
+   - If category names were given: exactly those categories; when there are sub-projects, ask a multiple-choice question over every project (root first) about which to reconfigure, suggesting all of them.
+   - Otherwise show a plain-language summary of each project's current settings, then ask two multiple-choice questions: which projects to reconfigure, and which categories (testing, methodology, code review, gitflow).
+   New projects always go through all four categories. Unselected projects and categories keep their saved values, which still feed the compatibility checks of step 5d.
+5. **Configure each project**, in order, root first.
+   a. **Copy or configure.** Before each project after the first, ask "Configure <project>" / "Copy the answers of <project>", with one copy option per project already configured in this run (on a re-run, also per project with saved settings). Copying takes that project's values for the categories being configured; then run this project's own compatibility checks (for example, pushing needs a git remote in this project's repository) and re-ask anything that conflicts.
+   b. **Ask the categories.** Otherwise run the checks of step 2 inside this project's directory (for the root: outside every sub-project), then ask its categories in this order: testing → methodology → code-review → gitflow, using multiple-choice only where noted. Show each allowed option by its description only, recommended option first with its one-line rationale. Without a signal from the inspection, recommend the project's saved value (on a first run the defaults below); for a new sub-project, recommend the root's value chosen in this run or saved. Hide options that are incompatible with values already chosen or saved, as noted per setting, and tell the user in plain language why a value was set without asking.
+   c. **Settings reference.** Each setting below is written as `key` (the question to ask) followed by its allowed values and their descriptions; keys and values are only for the files you write.
+
+   **testing** (`testing.md`)
+   - `test_depth` (How thoroughly should agents test their changes?): `none` (no tests are written or run) | `unit_new_code` (unit tests for new code; default) | `full` (unit and integration tests covering new and affected code).
+   - `e2e` (Should agents create end-to-end tests?): `skip` (do not create or run end-to-end tests; default) | `create_and_run` (create end-to-end tests for each change and run them) | `create_only` (create end-to-end tests, but leave running them to CI or a person). Ask only when `test_depth` is not `none`; otherwise set `skip` without asking. Recommend `create_and_run` only if e2e tooling was found.
+   - `test_fix_attempts` (How many attempts should agents make to fix failing tests before stopping?): an integer, default `5`. Offer `3`, `5`, `10`; the user can type a custom positive integer instead.
+
+   **methodology** (`methodology.md`)
+   - `methodology` (In which order should tests and code be written?): `tdd` (tests first, then the implementation) | `test_after` (the implementation first, then tests; default). **When `test_depth` is `none`, hide `tdd`**: set `test_after` without asking and briefly tell the user why. A saved `methodology: bdd` is a retired value: whenever you meet one, in a selected category or not, ask this question again with the two options above and rewrite that `methodology.md`. Without a user to ask, take `tdd` (`test_after` when `test_depth` is `none`) and say so.
+
+   **code-review** (`code-review.md`)
+   - `review_mode` (When should the implemented work be reviewed?): `none` (no code review) | `per_spec` (review each specification right after it is implemented) | `batch` (one review of all implemented specifications at the end of the apply run; default) | `per_spec_and_batch` (both: each specification right after it is implemented, and all of them together at the end).
+   - If `review_mode` is not `none`: ask which checks the review should run in one multiple-choice question, offering the groups by their labels only — spec conformance (`check_spec_conformance`), correctness and security (`check_correctness_security`), quality and style (`check_quality_style`), tests and docs (`check_tests_docs`). Each selected group is `true`, each unselected one `false`. Suggest all four, except **suggest tests and docs off when `test_depth` is `none`**.
+   - `auto_fix_attempts` (How many automatic fix rounds should run for review findings before asking you?): an integer, default `3`. Offer `1`, `3`, `5`. Ask only when `review_mode` is not `none`.
+   - If `review_mode` is `none`: set all four `check_*` keys to `false` without asking and keep `auto_fix_attempts` at its current value.
+
+   **gitflow** (`gitflow.md`)
+   - `branch_strategy` (Which branches should agents create?): `none` (no new branches; work on the current branch) | `per_apply` (one new branch per apply run; default) | `per_leaf` (one new branch per implemented specification).
+   - `base_branch` (Which branch should new branches start from?): the branch name is the user's own data. Recommend the detected default branch; offer `main`/`master`/`develop` when they exist.
+   - `commit_strategy` (When should agents commit?): `none` (never commit; leave the changes for you) | `per_leaf` (commit after each implemented specification; default) | `after_review_approval` (commit only after the code review approves the work) | `per_apply` (one commit at the end of the apply run). **Hide `after_review_approval` when `review_mode` is `none`.** **When `branch_strategy` is `per_leaf`, set `per_leaf` without asking** (each specification must be committed before the next one's branch is created) and briefly tell the user why.
+   - `tag_strategy` (Should agents create git tags?): `none` (create no tags; default) | `root_completion` (tag when the top specification of an apply run is completed) | `semver` (a version tag whose number is raised automatically from the commit messages: new features raise the minor version, fixes the patch version, breaking changes the major version). Recommend `semver` if the existing tags already follow semantic versioning.
+   - `tag_prefix` (What text should every tag start with?): ask only when `tag_strategy` is not `none`. Recommend the detected tag prefix, else `v`; offer "no prefix" (empty value). When `tag_strategy` is `none`, keep the current value.
+   - `after_apply` (What should happen at the end of an apply run?): `leave` (do not push; default) | `push` (push the branch to the remote, without opening a pull request) | `push_and_pr` (push the branch and open a pull/merge request). **Hide `push` and `push_and_pr` when the repository has no git remote.** Recommend `push_and_pr` only if a remote exists and `gh` (GitHub) or `glab` (GitLab) is installed for that host.
+   - `branch_name_template` (How should new branch names be built?): default `feature/<slug>`, where `<slug>` comes from the specification's title. Offer "Keep `<current value>`"; the user can type a different template instead. Ask only when `branch_strategy` is not `none`.
+   - `commit_message_template` (How should commit messages be built?): default `<type>(<scope>): <summary> [spec <spec_id>]` (the Conventional Commits format). Offer "Keep `<current value>`"; the user can type a different template instead. Ask only when `commit_strategy` is not `none`. If `tag_strategy` is `semver` and the user picks a template that is not Conventional Commits, warn that automatic version tags read the kind of change from commit messages in the Conventional Commits format.
+
+   d. **Compatibility.** A saved value in an unselected category can conflict with a new choice: `commit_strategy: after_review_approval` with `review_mode: none`, `methodology: tdd` or `e2e` other than `skip` with `test_depth: none`, `commit_strategy` other than `per_leaf` with `branch_strategy: per_leaf`, or `after_apply: push*` without a remote; a saved `methodology: bdd` (a retired value, see step 5c) is always a conflict, in every project. Check this per project, and across projects: `gitflow.md` values are normalized across every folder (step 6a-1), and when any project uses `branch_strategy: per_leaf`, the per-specification reviews of every project run in the foreground (see the `code-review.md` `### Leaf done` fragment); tell the user when a choice changes another project's behaviour this way. On a conflict, warn in plain language (which project, which setting and why), re-ask that setting with the incompatible options hidden even though its category wasn't selected, and rewrite that category's file too.
+6. **Write the settings**, only through the settings tools named above.
+   a. **Assemble each target file's new content.** Targets: the category files of each configured project (`settings/` for the root, `settings/<folder>/` for a sub-project), every file rewritten for compatibility, all four category files of each new sub-project, and every category file whose `## Rules` doesn't hold its fixed `###` subsections yet (rebuilt from its saved Parameters, even when its category wasn't selected). For every file:
+      1. **Normalize first.** Resolve every incompatible combination before rendering, across all files of the same folder (and, for `gitflow.md`, of every folder): `methodology: tdd` or `e2e` other than `skip` with `test_depth: none`; `commit_strategy: after_review_approval` with `review_mode: none`; `commit_strategy` other than `per_leaf` with `branch_strategy: per_leaf`; `after_apply: push*` without a git remote; a retired `methodology: bdd`, resolved as step 5c says. If one is still present (for example in an untouched sub-project file), warn the user, correct it to a compatible value (re-asking when a user is available) and make that file a target too.
+      2. Start from the file's current content (a new sub-project file starts from the root file, so its Custom section carries over). Keep the `# ...` title line and the `## Custom` section exactly as they are.
+      3. Replace the `## Parameters` list with every key of that file, in the order of step 5c (`- key: value`, one per line).
+      4. Replace `## Rules` with the file's fixed `###` subsections, assembled from its effective Parameters as "## Rules fragments" describes, then apply that file's adjustments and enrich it with what step 2 found for this folder's repository (for example the repository layout, the detected test commands or the sub-project's path). Write only instructions for the effective values: no other values' fragments, value catalogues, defaults, fallbacks or conflict-resolution text.
+      5. A subsection with no matching row gets the single bullet `- No action.`.
+      Per-sub-project `gitflow.md` files use the same format and assembly as the root file.
+   b. **Pass content inline**, as the tool's `content` parameter.
+   c. **Write each file**: `setups_files_update` with `path` `settings/<file>` for existing files, `setups_files_create` with `path` `settings/<folder>/<file>` for new sub-project files (it creates the folder; on a 409 use `setups_files_update` instead). For each removed sub-project, call `setups_files_delete` with `path` `settings/<folder>` and `recursive` `true`.
+   d. **Verify each write.** If a call didn't succeed, fix it and write the file again before moving on.
+   e. **Update `SETTINGS.md` last**, after every other write succeeded: its `## Sub-projects` table lists exactly the confirmed sub-projects, one row each as `| <repository path> | settings/<folder>/ |`, keeping the header rows `| repository path | settings folder |` and `|---|---|`, the paragraph above them and the category file links, and `- initialized: true` goes under `## Parameters`. Verify it the same way.
+
+## Report
+
+- Per project and per category, the chosen settings in plain language ("same as the root" where they match).
+- The projects added or removed and the files created or deleted.
+- Every compatibility correction, in plain language.
+- A reminder that the `## Custom` sections were left untouched and can hold project-specific rules, and that this skill can be re-run at any time, optionally with category names (for example `gitflow testing`).
+
+## Rules fragments
+
+Step 6a assembles each category file's `## Rules` from its table below. The rules are followed by `atn-apply` (the orchestrator, which alone runs git and review), `spec-implementation-planner`, `spec-implementer`, `spec-implementation-reviewer` and the skills and agents that write specification content, and rely on terms `atn-apply` defines: the run's git repositories, a leaf's files and whether it touched a repository, the implemented-leaves list, and a leaf's review having settled.
+
+**Assembly.** Each table has the columns `Subsection`, `Parameter`, `Option` and `Fragment`. A row matches when the file's `Parameter` value equals `Option` (or one of a comma-separated list of options); `*` / `*` always matches; a `Parameter` written `key=value&key2=value2` (with `Option` `*`) matches when every pair matches.
+1. For each fixed subsection, in file order, write `### <Subsection>`, then one bullet `- <fragment>` per matching row, in table order.
+2. Each `<br>` in a fragment becomes a newline followed by two spaces, so nested steps are written `…:<br>1. step<br>2. step`.
+3. A subsection without a matching row gets the single bullet `- No action.`.
+4. Replace `<key>` in one pass, only for keys of the file's `## Parameters`; every other `<…>` token, including those inside substituted values (such as `<slug>` in `feature/<slug>`), stays literal. Backticks appear exactly as written in the fragment.
+5. Leave a blank line after each `###` heading and between subsections, and one before `## Custom`. A `|` inside a fragment is written `\|`.
+6. Then apply the file's adjustments listed under its table, and the enrichment of step 6a.
+
+### gitflow.md
+
+| Subsection | Parameter | Option | Fragment |
+|---|---|---|---|
+| Apply start | commit_strategy | per_leaf, after_review_approval, per_apply | Record `git -C <repo> status --porcelain` in every repository as its pre-run dirty paths. |
+| Apply start | branch_strategy | none | Create no branches; work on the branch currently checked out in every repository. |
+| Apply start | branch_strategy | per_apply | Create one run branch per apply run in every repository, named `<branch_name_template>` with `<slug>` taken from the root specification's title, starting from `<base_branch>`, following the branch creation steps below. |
+| Apply start | branch_strategy | per_leaf | Before each leaf is implemented, create a leaf branch named `<branch_name_template>` with `<slug>` taken from the leaf's title, following the branch creation steps below, in every repository the leaf's plan predicts it will touch (every repository when the plan doesn't say). The first leaf branch in a repository starts from `<base_branch>`; each later one starts from the current HEAD, the previous leaf's branch (stacked, in plan order), so each leaf sees earlier leaves' code. A retry after a test failure reuses the leaf's branches. |
+| Apply start | branch_strategy | per_apply, per_leaf | Branch creation steps:<br>1. Slug: lowercase the title, replace every run of characters outside `[a-z0-9]` with `-`, trim `-` at both ends, truncate to 50 characters and trim trailing `-` again.<br>2. Clean tree: if `git -C <repo> status --porcelain` reports paths other than those the user already chose to carry over in this repository, ask the user, listing them: **Commit them first** (stage exactly those paths and commit them on the current branch with the message `chore: wip before <slug>`), **Stash them** (`git -C <repo> stash push --include-untracked -- <paths>`), **Carry them over onto the new branch** (leave them and don't ask about them again in this repository) or **Abort git operations for this repository**. Without a user, abort git operations for this repository.<br>3. Existing name: if `git -C <repo> rev-parse --verify --quiet refs/heads/<name>` succeeds, ask the user whether to **Reuse it** (`git -C <repo> switch <name>`) or **Create `<name>-2`** (the first free suffix: `-2`, `-3`, …). Without a user, create the suffixed branch.<br>4. Switch: record the current branch (`git -C <repo> branch --show-current`, or the commit from `git -C <repo> rev-parse HEAD` when detached) as the new branch's original branch, and the commit it starts from as its start point. For a branch from `<base_branch>`, run `git -C <repo> switch -c <name> <base_branch>`; if `<base_branch>` doesn't exist locally, run `git -C <repo> fetch origin <base_branch>` and use `origin/<base_branch>`. For a stacked branch, run `git -C <repo> switch -c <name>`. If the base still doesn't exist, or git refuses to switch, abort git operations for this repository and report why.<br>5. Record the branch for the report. |
+| Leaf done | commit_strategy | per_leaf | Commit the leaf in every repository it touched, following the commit steps below. |
+| Leaf done | commit_strategy | per_leaf, after_review_approval, per_apply | Commit steps, used by every commit this file asks for:<br>1. The staged set is the leaf's files in this repository that `git -C <repo> status --porcelain -- <paths>` reports as changed. If it is empty, make no commit in this repository.<br>2. Stage exactly the staged set with `git -C <repo> add -- <path>...` (a deleted path stages its deletion). Never `git add -A` or `git add .`.<br>3. If nothing is staged (`git -C <repo> diff --cached --quiet` succeeds), skip the commit. Otherwise run `git -C <repo> commit -m "<subject>"` (add `-m "<body>"` for a body).<br>4. Build the subject from the template `<commit_message_template>`: `<type>` is `feat` by default, `fix` for a fix, and `docs`, `test`, `refactor` or `chore` when clearly applicable, with `!` after the type and a `BREAKING CHANGE:` footer in the body only when the specification describes a breaking change; `<scope>` is the sub-project's settings folder name or the repository's directory name, and may be empty (then drop the parentheses); `<summary>` is the leaf title, starting lowercase, without a trailing period; `<spec_id>` is the leaf id.<br>5. List a staged path that is among the pre-run dirty paths in the report as "may include pre-run changes". Record the commit's sha and subject for the report. |
+| Leaf done | branch_strategy | per_leaf | Remove the leaf's branch again in every repository the leaf didn't touch, following the branch cleanup steps in `### Apply end`. If the leaf touched a repository without a leaf branch for it, commit its changes there on the current branch as usual and report it. |
+| Review approved | commit_strategy | per_leaf | If any of the leaf's files are still changed in a repository (review fixes), commit them there as a follow-up commit, following the commit steps in `### Leaf done`, with type `fix` and summary `address review findings for <leaf title>`. |
+| Review approved | commit_strategy | after_review_approval | The first time this runs for a leaf, commit the leaf in every repository it touched, following the commit steps in `### Leaf done`. When it runs again for a reopened leaf, commit its still-changed files as a follow-up commit with type `fix` and summary `address review findings for <leaf title>`. |
+| Apply end | commit_strategy | per_apply | Make one commit per repository with the staged sets of every implemented leaf that touched it, following the commit steps in `### Leaf done`, with the root specification's id and title as `<spec_id>` and `<summary>`, and each included leaf's id and title in the body (marking leaves that aren't `completed`). |
+| Apply end | branch_strategy | per_apply, per_leaf | Remove every branch this run created that holds no changes, following these branch cleanup steps:<br>1. Keep the branch unless `git -C <repo> rev-list --count <start point>..<name>` is `0` and no leaf it was created for (every leaf of the run for a run branch, the leaf itself for a leaf branch) has changed files in this repository.<br>2. Switch back to its original branch (`git -C <repo> switch <original branch>`, or `git -C <repo> switch --detach <commit>` when it was detached); carried-over changes move along.<br>3. Delete it with `git -C <repo> branch -D <name>`. Never delete a reused existing branch.<br>4. If the switch fails, keep the branch and report it. Record every removed branch for the report. |
+| Apply end | tag_strategy | none | Create no tags. |
+| Apply end | tag_strategy | root_completion | Only when the root specification reached `completed`, and only in repositories the run committed to, create one annotated tag named `<tag_prefix><root slug>`: `git -C <repo> tag -a <name> -m "<root title> [spec <root id>]"`, adding the first free numeric suffix when the name exists. Otherwise create no tags and report why. |
+| Apply end | tag_strategy | semver | Only when the root specification reached `completed`, and only in repositories the run committed to, tag each repository: take the latest tag from `git -C <repo> tag --list '<tag_prefix>[0-9]*' --merged HEAD --sort=-v:refname` (first line), read the commits since it with `git -C <repo> log <tag>..HEAD --format=%s%n%b` (all of HEAD's history without a tag) and derive the bump from the Conventional Commits: `BREAKING CHANGE` or `<type>!:` → major, `feat` → minor, `fix` → patch, the largest wins. Without qualifying commits, don't tag; without a previous tag, use `<tag_prefix>0.1.0`. Create an annotated tag with the root title and id as its message. Otherwise create no tags and report why. |
+| Apply end | after_apply | leave | Do not push and do not open a pull request. |
+| Apply end | after_apply | push, push_and_pr | In every repository the run committed to, run `git -C <repo> push -u origin <current branch>`, even when the current branch is `<base_branch>`. A push failure never fails the run: record it and continue. |
+| Apply end | after_apply | push_and_pr | Open one pull request per repository targeting `<base_branch>`: with `glab` when `git -C <repo> remote get-url origin` contains `gitlab`, otherwise with `gh`. If the tool is missing (`command -v gh` / `command -v glab`) or not authenticated (`gh auth status` / `glab auth status`), ask the user: **Retry after fixing** (check again), **Push only (skip the PR)** or **Skip this repository**; without a user, push only. Run `gh pr create --base <base_branch> --head <branch> --title "<title>" --body "<body>"` or `glab mr create --source-branch <branch> --target-branch <base_branch> --title "<title>" --description "<body>"`, titled with the root specification's title, the body listing the root and every implemented leaf that touched this repository (id and title). A pull request failure never fails the run: record it and continue. Record every pull request URL. |
+| Implementation | * | * | Never run a git command that changes state — no `git add`, `commit`, `branch`, `checkout`, `switch`, `stash`, `reset`, `restore`, `rebase`, `merge`, `tag` or `push`. Read-only commands such as `git status` and `git diff` are fine. Git operations belong to `atn-apply` and the user. |
+
+- Placeholder-only parameters: `base_branch`, `tag_prefix`, `branch_name_template`, `commit_message_template`.
+- Adjustments: with `tag_strategy: root_completion` and a `<tag_prefix>` that looks like a version prefix (such as `v`), name the tag `spec/<root slug>` instead. With `after_apply: push` or `push_and_pr` and `commit_strategy: none`, push "every repository the run touched" instead of "every repository the run committed to". With `after_apply: push_and_pr` and `branch_strategy: per_leaf`, append to the pull request bullet: "Open the pull request for the last leaf branch in the repository, and list the other stacked branches in the report as not opened as pull requests." When step 2 found the repository layout (e.g. nested git repositories) or neither `gh` nor `glab`, add it (the layout as a first `### Apply start` bullet; the missing tool only in this skill's report).
+
+### testing.md
+
+| Subsection | Parameter | Option | Fragment |
+|---|---|---|---|
+| Planning | test_depth | none | Plan no tests. |
+| Planning | test_depth | unit_new_code | Plan unit tests for the new code. |
+| Planning | test_depth | full | Plan unit and integration tests for the new and affected code, including edge and error cases. |
+| Planning | e2e | skip | Plan no e2e tests. |
+| Planning | e2e | create_and_run | Plan e2e tests for the change and a step that runs them. |
+| Planning | e2e | create_only | Plan e2e tests for the change, but no step that runs them; running them is left to CI or a person. |
+| Planning | test_depth | unit_new_code, full | Name the test commands to run, as found in the project. |
+| Implementation | test_depth | none | Write and run no tests. |
+| Implementation | test_depth | unit_new_code | Write unit tests for the new code, then run the tests covering the changed code. |
+| Implementation | test_depth | full | Write unit and integration tests for the new and affected code, including edge and error cases, then run the tests covering the changed code. |
+| Implementation | e2e | skip | Do not create, modify or run e2e tests. |
+| Implementation | e2e | create_and_run | Create e2e tests for the change and run them. You may start the services they need (e.g. `docker compose up -d <services>`, long-running processes in the background); afterwards stop only the services you started. Never run `docker compose down -v` or anything else that destroys data. Report which services you started and stopped. |
+| Implementation | e2e | create_only | Create e2e tests for the change, but do not run them; running them is left to CI or a person. |
+| Implementation | test_depth | unit_new_code, full | Work out the test commands from the project itself (`package.json` scripts, README, CLAUDE.md, the Maven/Gradle wrapper and similar). |
+| Implementation | test_depth | unit_new_code, full | If tests fail, fix the cause and re-run, at most <test_fix_attempts> attempts in total per sub-project. If they still fail after the last attempt, stop working on this leaf and report a `TEST FAILURE` block. |
+
+- Placeholder-only parameters: `test_fix_attempts`.
+- Adjustments: add the test commands step 2 detected for this folder's repository as an extra bullet after "Name the test commands…" and after "Work out the test commands…". The standard file carries no repository-specific commands.
+
+### methodology.md
+
+| Subsection | Parameter | Option | Fragment |
+|---|---|---|---|
+| Spec authoring | methodology | tdd | Every specification's content includes a `## Acceptance criteria` section with explicit, testable criteria drawn from the specification (for a proposed breakdown: a draft per proposed stage). Best effort: include it only when it can be derived from the specification, its answers and research; otherwise omit it silently, never asking about it or blocking on it. Use the heading verbatim and place it before any `## References` section. |
+| Planning | methodology | tdd | Order each sub-project's steps: failing tests first (derived from the specification's `## Acceptance criteria` section, if present), then the implementation that makes them pass, then refactoring. |
+| Planning | methodology | test_after | Order each sub-project's steps: the implementation first, then the tests testing.md asks for. |
+| Implementation | methodology | tdd | Write the failing tests first, run them to see them fail, then implement until they pass, then refactor. |
+| Implementation | methodology | test_after | Write the code first, then the tests testing.md asks for. |
+
+### code-review.md
+
+| Subsection | Parameter | Option | Fragment |
+|---|---|---|---|
+| Leaf done | review_mode | none | Do not review the leaf. The implementer's success (no `TEST FAILURE` block) is its approval: call `specs_set_status` with `id` `<leafId>` and `status` `completed`. |
+| Leaf done | review_mode | batch | Do not review the leaf now; it is reviewed together with the other leaves in `### Apply end`. |
+| Leaf done | review_mode | per_spec, per_spec_and_batch | Spawn the `spec-implementation-reviewer` subagent for this leaf only, with pass type `per-leaf`, and handle its result as described in `### Findings`. Run it in the foreground: the next leaf starts only once this review has settled. |
+| Apply end | review_mode | batch | If the implemented-leaves list is not empty, spawn the `spec-implementation-reviewer` subagent once, in the foreground, with every implemented leaf's id and title and pass type `batch` — not one call per leaf — and handle its result as described in `### Findings`, over the whole batch. |
+| Apply end | review_mode | per_spec_and_batch | If at least two leaves were completed in this run (approved or accepted as is), spawn the `spec-implementation-reviewer` subagent once, in the foreground, with those leaves and pass type `cross-spec-only`. Leaves it sets `completed` stay `completed`; for every leaf with a finding, first call `specs_set_status` with `id` `<leafId>` and `status` `processing`, then handle the findings as described in `### Findings`, over the same leaves and pass type. |
+| Review | check_spec_conformance | true | Spec conformance: **gaps** (something the specification asks for is missing), **mismatches** (implemented differently in a way that changes behaviour or contradicts its intent; cosmetic naming or style differences don't count) and, in `batch` and `cross-spec-only` passes only, **cross-spec contracts**: leaves that call into, depend on or share a contract with each other (a function signature, API shape, data schema, event name or other interface) must be implemented consistently. Trace real call sites and imports with `Grep`/`Glob` across the files the given leaves touched, and flag producer/consumer mismatches, duplicated or conflicting logic that should share one source of truth, and broken assumptions one leaf's specification makes about another. |
+| Review | check_correctness_security | true | Correctness and security: bugs, whether the code would actually work as described, unhandled edge cases and error paths, and security issues (injection, missing authorization, leaked secrets and similar). |
+| Review | check_quality_style | true | Quality and style: consistency with the project's existing conventions (naming, structure, patterns in neighbouring code), readability and maintainability. Don't report pure matters of taste. |
+| Review | check_tests_docs | true | Tests and docs: load the owning sub-project's `testing.md` and `methodology.md` (their `### Implementation` subsections and `## Custom` sections) the same way as this file, check that the tests the change needs exist and match them, and that the documentation (README, CONTRIBUTING, CLAUDE.md and similar) is updated where the change requires it. |
+| Findings | * | * | When the reviewer returns (first review or re-review), leaves it set to `completed` are approved; findings it marked `needs-decision` go straight to the escalation below, without auto-fixing them first; all other findings go to the fix loop. |
+| Findings | * | * | Fix loop: run up to <auto_fix_attempts> rounds for the review's scope (the same leaves and pass type the review was started with). Each round:<br>1. Group the open findings by leaf; a cross-spec finding goes to the leaf it says should change, or to each named leaf.<br>2. Resume each affected leaf's `spec-implementer` via `SendMessage`, one leaf at a time, with that leaf's findings (plus any answers the user gave at an escalation, as ground truth), telling it no user is available otherwise. If it can't be resumed, spawn a new `spec-implementer` for the leaf, telling it to read its plan with `specs_get_plan` (`id` `<leafId>`) and fix exactly these findings. A `TEST FAILURE` block stays an open finding for its leaf.<br>3. Resume the same `spec-implementation-reviewer` via `SendMessage` (or spawn a new one) to re-review the same scope with the same pass type, and handle the result as above. Stop as soon as no findings are open.<br>Without `SendMessage`, spawn a new implementer and reviewer each round, passing a summary of the earlier rounds' findings. |
+| Findings | * | * | Escalation: a leaf with findings still open after <auto_fix_attempts> rounds stays `processing`. Ask the user one question per leaf, listing its open findings, with four options:<br>- **Retry:** another <auto_fix_attempts> fix rounds for this leaf, then ask again if findings are still open.<br>- **Accept as is:** call `specs_set_status` with `id` `<leafId>` and `status` `completed` and record the leaf as "accepted with open findings", with those findings.<br>- **Skip:** the leaf stays `processing`; record it as "skipped with open findings". Its review fixes stay uncommitted unless a gitflow rule already covered them. Continue with the next item.<br>- **Stop:** record the leaf as "skipped with open findings", process no further items, skip every review not yet started, let reviews in flight settle, and finish the run. |
+| Findings | * | * | For a `needs-decision` finding, show the reviewer's proposed change with the options **Apply the proposed change**, **Drop this finding**, **Skip** and **Stop**; the user can type a different resolution. Answers go to the leaf's implementer as ground truth in the next fix round; a leaf whose only open findings were dropped counts as accepted as is. |
+| Findings | * | * | Without a user, treat the escalation answer as **Skip**, and for a `needs-decision` finding apply the reviewer's proposed change. |
+
+- Placeholder-only parameters: `auto_fix_attempts`.
+- Adjustments: with `review_mode: per_spec` or `per_spec_and_batch`, when no `gitflow.md` of any folder uses `branch_strategy: per_leaf`, replace the `### Leaf done` bullet's last sentence with: "It may run in the background while the next leaf is planned, if this environment supports background agents and `SendMessage`. Implement that next leaf first only if it is independent — no file in both leaves (no shared sub-project when its plan is vague about files) and this leaf is not among its `internalBlockers`, directly or through leaves whose review hasn't settled; when in doubt, wait. Wait for this review to settle and the next leaf's implementer to return before that leaf's own review, before any later leaf and before `### Apply end`: at most one review runs in the background, a fix touching the next leaf's files waits for its implementer, and never ask two escalations at once."

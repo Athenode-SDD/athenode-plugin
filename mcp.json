@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "athenode": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@athenode/cli@latest", "mcp"]
+    }
+  }
+}
