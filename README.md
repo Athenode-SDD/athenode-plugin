@@ -1,48 +1,171 @@
-# Athenode standard setup
+<p align="center">
+  <a href="https://athenode.com">
+    <img src="assets/logo.svg" alt="Athenode logo" width="96">
+  </a>
+</p>
 
-The agent setup every new [Athenode](https://athenode.com) project starts with: the skills,
-subagents, rules, settings files and MCP server of Athenode's spec-driven development workflow.
+<h1 align="center">Athenode</h1>
 
-Athenode installs it into a project for Claude Code, Codex, Cursor and the other supported coding
-agents with `npx @athenode/cli init`. This repository is the source of that setup; the files here
-are in Athenode's source format, not in the format of any single coding agent.
+<p align="center">
+  Think your product through before your AI coding agent writes code.
+</p>
 
-## Layout
+<p align="center">
+  <a href="https://athenode.com">Website</a> ·
+  <a href="https://athenode.com/docs">Documentation</a> ·
+  <a href="https://athenode.com/docs/getting-started">Quickstart</a> ·
+  <a href="https://athenode.com/library">Setup library</a> ·
+  <a href="https://platform.athenode.com">Start for free</a>
+</p>
 
-| Path | What it is |
+## The standard Athenode setup
+
+[Athenode](https://athenode.com) is a spec-driven development platform. You grow a tree of specifications (specs), from the whole application down to a task an agent finishes in one go, and your own AI coding tool builds from it.
+
+This repository holds the standard Athenode setup, the agent setup every new Athenode project starts with. An agent setup is a named bundle of what your AI coding tools work with: skills, agents, rules, MCP servers and setup files. The standard setup contains 7 skills, 10 agents, 1 rules text, 1 MCP server and 5 settings files, and one command installs it into Claude Code, Codex, Cursor or any other of the [30 supported AI tools](https://athenode.com/docs/supported-ai-tools).
+
+## What you get
+
+An AI coding agent is good at a well-defined task and bad at guessing what you meant. A feature larger than one prompt holds decisions you have not made, and your agent makes them for you as it writes the code. With Athenode the work is thought through and written down first, then it is built.
+
+| Advantage | What it means for you |
+|---|---|
+| A spec tree that grows in depth | You work out a whole application before any code exists and deepen any part of it whenever you need to. Any spec can have sub-specifications, to any depth. |
+| Your agent asks about what you did not think of | A mind map is a session in which your AI agent asks rounds of questions and turns your answers into a spec. Before the first question it looks at your codebase and at the specs you already have. |
+| From a thought-through tree to code | An apply run implements the leaf specs under a spec in the order their blockers allow. It plans, implements and reviews each one, goes on by itself and stops only when something falls outside the spec and needs you. Several apply runs can work at the same time, in separate sessions or on separate branches. |
+| The workflow follows your project's settings | You choose once per project how thoroughly the agent tests, whether tests come before the code (TDD) or after it, when the code is reviewed and what the agent does with git, from branches and commits to an open pull request. You can add rules of your own on top. |
+| Search by meaning across the tree | You find a spec by describing it in your own words, in the web app or from your AI tool. Your agent searches the same way before it writes a spec, so it sees the specs the new one depends on or overlaps with. |
+| ToDo cards for what turns up along the way | A follow-up, tech debt, a bug or an idea becomes a ToDo card. An agent carries a card out by itself when it needs no answer from you, or the card becomes a spec through a mind map. |
+| One setup for every AI tool you use | The Athenode CLI installs the setup in the format each AI tool reads. Your own rules and MCP servers are kept, and you see every change before it is made. |
+| Your code stays in your repository | Athenode keeps your specs with their questions, answers, plans and statuses, your ToDo cards and your agent setups. Your AI tool does the building in your repository, on your subscription to it. |
+
+## Install
+
+You need a free [Athenode account](https://platform.athenode.com), Node.js 22.12 or later and one of the [supported AI coding tools](https://athenode.com/docs/supported-ai-tools).
+
+1. In the web app, create a project, open **Tokens** and copy a project token.
+2. In the root of your repository, run:
+
+   ```bash
+   npx @athenode/cli init
+   ```
+
+3. Enter the token, choose your AI tools and confirm the plan that `init` shows.
+4. Restart your AI tool so that it loads the skills, the agents and the Athenode MCP server.
+
+The [Quickstart](https://athenode.com/docs/getting-started) goes through each step, and [Install a setup](https://athenode.com/docs/agent-setups/install) describes everything `init` does.
+
+## Use the skills
+
+A skill is a reusable set of instructions that your AI tool runs as a command, such as `/atn-mindmap`. The skills below are written in their slash form. The way to run a skill differs by AI tool, and `init` prints the form for each tool you selected.
+
+You run the skills in your AI tool, in this order: settings once for the project, then a mind map for each piece of work, a decomposition when the work is large, and an apply run to have it built.
+
+### 1. Choose how your project works with `/atn-settings`
+
+You run `/atn-settings` once, before the first piece of work. The skill looks at your repository and asks how agents should work in it: how thoroughly they test, whether tests come before the code (TDD) or after it, when the code is reviewed and what the review checks, and what they do with git, from branches and commits to an open pull request. Every later step follows your answers. You run the skill again whenever you want to change them, and you can add rules of your own on top.
+
+### 2. Think the work through with `/atn-mindmap`
+
+You start a mind map with what you want to build, in a sentence. A mind map is a session in which your AI agent asks rounds of questions and turns your answers into a spec, one described piece of work. Before the first question the agent looks at your codebase and at the specs you already have, so the questions are about the decisions you have not made. After each round you choose the next topic, and you decide when the mind map is finished.
+
+The result is a spec with the status Prepared, which means ready to be decomposed or implemented. You read it in the web app, with the questions and answers behind it. A small change needs only this step before you apply it.
+
+### 3. Break large work into stages with `/atn-decompose`
+
+You decompose a spec when it is too big for an agent to finish in one go. To decompose a spec is to break it down into one level of stages, each a spec of its own. The skill asks the questions each stage raises, writes each stage from your answers and links the stages with blockers. A blocker is a dependency between two specs: a spec that is blocked by another is implemented after it.
+
+You decompose a stage again wherever it is too big, so the spec tree grows as deep as the work needs. A leaf spec, a spec with nothing below it, is what your agent implements.
+
+### 4. Have it built with `/atn-apply`
+
+You apply a spec when it is thought through. Your AI agent goes through the leaf specs under it in the order their blockers allow. For each leaf it records an implementation plan and writes the code, then tests, reviews and commits the way you chose in the settings.
+
+An apply run goes on by itself and stops only when something falls outside the spec and needs you. Each spec's status changes in the web app while the agent works, and a spec becomes Completed when everything under it is. Several apply runs can work at the same time, in separate sessions or on separate branches.
+
+### 5. Keep what turns up as ToDo cards
+
+A ToDo card is a short note of work to do later: a follow-up, tech debt, a bug or an idea. At the end of an apply run you choose which of your agent's findings become cards, and `/atn-todo-enqueue` adds a card of your own at any moment of a session.
+
+`/atn-todo-dequeue` works through the open cards one by one. A card that needs thinking through becomes a spec through a mind map, and a card that needs no answer from you is carried out directly by an agent.
+
+### 6. Change the setup with `/atn-manage`
+
+`/atn-manage` takes no part in building a spec. You use it when you want to change what your agents work with: you describe the change, and the skill lists, creates, changes or deletes setups and their skills, agents, rules, MCP servers and files, and works with the setup library.
+
+### Where to read more
+
+While a skill runs, it hands work to the 10 agents of the setup, such as a planner, an implementer and a reviewer. You do not run them yourself. The documentation has the arguments and options of each skill and the role of each agent.
+
+| Topic | Documentation |
+|---|---|
+| The workflow as a whole | [The Athenode workflow](https://athenode.com/docs/workflow) |
+| Each skill | [`/atn-settings`](https://athenode.com/docs/workflow/atn-settings), [`/atn-mindmap`](https://athenode.com/docs/workflow/atn-mindmap), [`/atn-decompose`](https://athenode.com/docs/workflow/atn-decompose), [`/atn-apply`](https://athenode.com/docs/workflow/atn-apply), [`/atn-todo-enqueue`](https://athenode.com/docs/todo-cards/atn-todo-enqueue), [`/atn-todo-dequeue`](https://athenode.com/docs/todo-cards/atn-todo-dequeue), [`/atn-manage`](https://athenode.com/docs/agent-setups/atn-manage) |
+| Skills, agents and settings files of this setup | [Standard Athenode setup](https://athenode.com/docs/agent-setups/standard-setup) |
+| How to run a skill in each AI tool | [Supported AI tools](https://athenode.com/docs/supported-ai-tools) |
+| Specs, statuses and search | [Specifications](https://athenode.com/docs/specifications), [Search by meaning](https://athenode.com/docs/specifications/search) |
+| ToDo cards | [ToDo cards](https://athenode.com/docs/todo-cards) |
+
+## Make the setup your own
+
+Your project's copy of the standard setup is yours to edit: change a skill, add an agent, write rules of your own or add an MCP server, in the web app or with `/atn-manage`. For a different job, such as a security review of your application, you install a different setup. The [setup library](https://athenode.com/library) is the shared catalogue of agent setups that projects have published, and anyone can browse it.
+
+When Athenode changes the standard setup, it updates your project's copy part by part.
+
+| Part of your copy | What an update does |
+|---|---|
+| A built-in skill or agent that your project has not changed | Receives the version from the standard setup. |
+| A built-in skill or agent that your project changed | Keeps your version. |
+| The rules, if your project has not changed them | Receive the version from the standard setup. |
+| The rules, if your project changed them | Keep your version. |
+| A skill or agent that the standard setup gains | Is added, unless your copy already has one of that name. |
+| Settings files, MCP servers and everything you added | Stay as they are. |
+
+An update changes the copy in your Athenode project. To bring it into a local project directory, run `npx @athenode/cli init` there again. `init` shows the changed files in its plan before it writes them.
+
+Go deeper: [Standard Athenode setup](https://athenode.com/docs/agent-setups/standard-setup) · [Agent setups](https://athenode.com/docs/agent-setups) · [Setup library](https://athenode.com/docs/library) · [Athenode MCP server](https://athenode.com/docs/athenode-mcp)
+
+## Repository layout
+
+The files are in Athenode's source format, which the Athenode CLI turns into the format each AI tool reads.
+
+| Path | What it holds |
 |---|---|
 | `description.md` | The setup's description, shown in Athenode. |
-| `rules/athenode.md` | The rules text, installed into `CLAUDE.md`, `AGENTS.md` and their counterparts. |
-| `subagents/<name>.md` | One subagent per file. |
+| `rules/athenode.md` | The rules text, installed as the Athenode rules block in `CLAUDE.md`, `AGENTS.md` and their counterparts. |
+| `subagents/<name>.md` | One agent per file. |
 | `skills/<name>/SKILL.md` | One skill per directory. |
-| `settings/<name>.md` | The workflow settings files the skills and subagents load at runtime. |
-| `mcp.json` | The setup's MCP servers. |
-| `docs/targets.md` | Per-target metadata: tool names and the reasons behind each block. |
+| `settings/<name>.md` | The five settings files. |
+| `mcp.json` | The setup's MCP server, `athenode`. |
+| `docs/targets.md` | The per-tool metadata: tool names and the reason behind each block. |
 
-## Format
+A skill or agent file is YAML frontmatter followed by the prompt. The frontmatter holds `name`, equal to the file or directory name, and `description`, then one block per AI tool with the fields only that tool reads. A settings file has one frontmatter key, `summary`. The blank line after a frontmatter block is not part of the text.
 
-- A subagent or skill file is YAML frontmatter followed by the prompt. The frontmatter holds
-  `name` (equal to the file or directory name) and `description`, then one block per target with
-  the fields only that coding agent reads; see [docs/targets.md](docs/targets.md).
-- A settings file has one frontmatter key, `summary`; the rest is the file as a project receives
-  it.
-- `description.md` and `rules/athenode.md` are plain Markdown without frontmatter.
-- The blank line after a frontmatter block is not part of the text.
+```yaml
+---
+name: atn-apply
+description: Use when a prepared specification (or subtree) should be planned, implemented, reviewed and committed leaf by leaf.
+claudecode:
+  argument-hint: "[spec_id_or_name]"
+  allowed-tools: Agent, SendMessage, AskUserQuestion, Skill, Bash
+copilot:
+  argument-hint: "[spec_id_or_name]"
+  allowed-tools:
+    - agent
+    - execute
+---
+```
 
-Check a change with:
+Check a change before you open a pull request:
 
-```sh
+```bash
 npm ci
+```
+
+```bash
 npm test
 ```
 
-## How a change reaches projects
+## Licence
 
-Athenode pins a commit of this repository and ships its content with a release of the service. A
-project's own copy of the setup then receives the new version of every part the project has not
-changed; parts a project changed keep the project's version. See
-[the documentation](https://athenode.com/docs) for the details.
-
-## License
-
-[Apache-2.0](LICENSE).
+The content of this repository is published under the [Apache-2.0 licence](LICENSE). Athenode is a hosted service with a Free plan, and its CLI, [`@athenode/cli`](https://www.npmjs.com/package/@athenode/cli), is published under the same licence.
