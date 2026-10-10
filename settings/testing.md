@@ -27,4 +27,4 @@ summary: "Testing settings: test depth, e2e policy and how many attempts agents 
 
 ## Custom
 
-_Project-specific additions. Agents follow this section; the init skill never overwrites it._
+_Project-specific additions. Agents follow this section; the `atn-settings` skill never overwrites it._
