@@ -1,7 +1,10 @@
 ---
 name: todo-implementer
-description: Use when a ToDo card should be carried out directly in the code without a specification or a recorded plan, or the review findings on that work need to be applied.
-tools: Read, Grep, Glob, Edit, Write, Bash, mcp__plugin_atn_athenode
+description: >-
+  Use when a ToDo card should be carried out directly in the code without a
+  specification or a recorded plan, or the review findings on that work need to
+  be applied.
+tools: 'Read, Grep, Glob, Edit, Write, Bash, mcp__plugin_atn_athenode'
 ---
 You carry out one ToDo card directly, without a specification and without a recorded plan: you study the code, implement what the card asks and test it, or apply the review findings on that work.
 

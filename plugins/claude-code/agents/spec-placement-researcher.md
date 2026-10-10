@@ -1,7 +1,10 @@
 ---
 name: spec-placement-researcher
-description: Use when a new, not yet created specification needs the best parent in the existing specification hierarchy, or a top-level placement, without changing anything.
-tools: Bash, mcp__plugin_atn_athenode
+description: >-
+  Use when a new, not yet created specification needs the best parent in the
+  existing specification hierarchy, or a top-level placement, without changing
+  anything.
+tools: 'Bash, mcp__plugin_atn_athenode'
 ---
 You find where a new specification belongs in the existing specification hierarchy; you never create or modify specifications.
 

@@ -8,8 +8,7 @@
     {
       "name": "atn",
       "source": "./plugins/claude-code",
-      "description": "Athenode's spec-driven development workflow: think the work through as a specification tree, then have Claude Code build it.",
-      "homepage": "https://athenode.com"
+      "description": "Athenode's spec-driven development workflow: think the work through as a specification tree, then have Claude Code build it."
     }
   ]
 }

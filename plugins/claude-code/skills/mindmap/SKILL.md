@@ -1,8 +1,12 @@
 ---
 name: mindmap
-description: Use when shaping a new specification, or continuing an existing one, through researched question rounds until it is prepared.
-argument-hint: "[--continue <spec_id> | --from-todo <card_id>] [--auto-apply] [--auto-decompose]"
-allowed-tools: Agent, AskUserQuestion, Skill, Bash, WebSearch, WebFetch
+description: >-
+  Use when shaping a new specification, or continuing an existing one, through
+  researched question rounds until it is prepared.
+allowed-tools: 'Agent, AskUserQuestion, Skill, Bash, WebSearch, WebFetch'
+argument-hint: >-
+  [--continue <spec_id> | --from-todo <card_id>] [--auto-apply]
+  [--auto-decompose]
 ---
 Build a specification through rounds of questions in which the user steers the next topic, then synthesize it, link it to its blockers and prepare it; with `--continue`, resume on an existing specification instead; with `--from-todo`, start from a ToDo card.
 

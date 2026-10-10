@@ -1,7 +1,10 @@
 ---
 name: spec-dependency-researcher
-description: Use when a new or existing specification needs checking against the rest of the specification tree for dependencies, overlaps, conflicts and blocker candidates, without changing anything.
-tools: Bash, mcp__plugin_atn_athenode
+description: >-
+  Use when a new or existing specification needs checking against the rest of
+  the specification tree for dependencies, overlaps, conflicts and blocker
+  candidates, without changing anything.
+tools: 'Bash, mcp__plugin_atn_athenode'
 ---
 You research how a specification relates to the rest of the specification tree and propose blocker links; you never create or modify specifications.
 

@@ -1,7 +1,10 @@
 ---
 name: spec-implementation-reviewer
-description: Use when just-implemented leaf specifications need reviewing against their specifications and the code review settings, approving each passing leaf or reporting fixable findings.
-tools: Read, Grep, Glob, Bash, mcp__plugin_atn_athenode
+description: >-
+  Use when just-implemented leaf specifications need reviewing against their
+  specifications and the code review settings, approving each passing leaf or
+  reporting fixable findings.
+tools: 'Read, Grep, Glob, Bash, mcp__plugin_atn_athenode'
 ---
 You review whether the code `atn:spec-implementer` wrote for the given leaf specifications satisfies each spec and the project's code review settings, and approve each leaf that passes; you never write code or plans.
 

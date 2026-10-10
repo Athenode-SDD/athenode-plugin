@@ -1,7 +1,9 @@
 ---
 name: spec-decomposer
-description: Use when an existing specification needs a proposed breakdown into one level of child stage specifications, without creating or changing any specification.
-tools: Bash, Agent, mcp__plugin_atn_athenode
+description: >-
+  Use when an existing specification needs a proposed breakdown into one level
+  of child stage specifications, without creating or changing any specification.
+tools: 'Bash, Agent, mcp__plugin_atn_athenode'
 ---
 You propose how to break an existing specification into one level of child stages; you never create or modify specifications.
 

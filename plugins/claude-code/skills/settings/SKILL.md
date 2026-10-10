@@ -1,8 +1,10 @@
 ---
 name: settings
-description: Use when the project's workflow settings (gitflow, testing, code review, methodology) need to be chosen or changed.
-argument-hint: "[category...]"
-allowed-tools: AskUserQuestion, Bash, Read, Glob, Grep
+description: >-
+  Use when the project's workflow settings (gitflow, testing, code review,
+  methodology) need to be chosen or changed.
+allowed-tools: 'AskUserQuestion, Bash, Read, Glob, Grep'
+argument-hint: '[category...]'
 ---
 Configure the project's workflow settings (testing, methodology, code review and gitflow, per project) that every other Athenode agent and skill loads, by inspecting the local project read-only, asking category by category and saving the chosen values to the `settings/` files of the project's setup copy.
 

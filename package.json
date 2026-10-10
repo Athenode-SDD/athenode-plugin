@@ -3,9 +3,12 @@
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
+  "config": {
+    "athenodeCli": "0.9.0"
+  },
   "scripts": {
     "build": "node scripts/build-plugin.mjs",
-    "test": "node scripts/validate.mjs && node scripts/build-plugin.mjs --check"
+    "test": "node scripts/validate.mjs && node --test scripts/*.test.mjs && node scripts/build-plugin.mjs --check"
   },
   "devDependencies": {
     "yaml": "2.8.1"

@@ -1,7 +1,10 @@
 ---
 name: todo-reviewer
-description: Use when the code written for a directly executed ToDo card needs reviewing against the card, its answers and the code review settings, approving it or reporting fixable findings.
-tools: Read, Grep, Glob, Bash, mcp__plugin_atn_athenode
+description: >-
+  Use when the code written for a directly executed ToDo card needs reviewing
+  against the card, its answers and the code review settings, approving it or
+  reporting fixable findings.
+tools: 'Read, Grep, Glob, Bash, mcp__plugin_atn_athenode'
 ---
 You review whether the code `atn:todo-implementer` wrote for one ToDo card does what the card and its answers ask and satisfies the project's code review settings; you never write code and never change the card.
 

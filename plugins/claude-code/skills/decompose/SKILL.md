@@ -1,8 +1,10 @@
 ---
 name: decompose
-description: Use when an existing specification should be broken into one level of stage specifications that are clarified, finalized and prepared.
-argument-hint: <spec_id> [--auto-apply]
-allowed-tools: Agent, AskUserQuestion, Skill, Bash, WebSearch, WebFetch
+description: >-
+  Use when an existing specification should be broken into one level of stage
+  specifications that are clarified, finalized and prepared.
+allowed-tools: 'Agent, AskUserQuestion, Skill, Bash, WebSearch, WebFetch'
+argument-hint: '<spec_id> [--auto-apply]'
 ---
 Break an existing specification into one level of draft child stages, collect the answers to each stage's open questions, then have every child finalized, prepared and linked to its blockers.
 
