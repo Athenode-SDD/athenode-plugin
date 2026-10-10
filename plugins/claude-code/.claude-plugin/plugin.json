@@ -1,0 +1,17 @@
+{
+  "name": "atn",
+  "description": "Athenode's spec-driven development workflow: think the work through as a specification tree, then have Claude Code build it.",
+  "author": {
+    "name": "Athenode",
+    "url": "https://athenode.com"
+  },
+  "homepage": "https://athenode.com",
+  "repository": "https://github.com/Athenode-SDD/athenode-setup",
+  "license": "Apache-2.0",
+  "keywords": [
+    "spec-driven-development",
+    "specifications",
+    "workflow",
+    "athenode"
+  ]
+}
