@@ -415,7 +415,7 @@ describe('the build', () => {
         assert.ok(skill.endsWith('\n---\n\nBody of one.\n') || skill.endsWith('\n---\nBody of one.\n'));
     });
 
-    test('fails on a skill without the atn- prefix', { skip }, () => {
+    test('fails when dropping the atn- prefix gives two skills one name', { skip }, () => {
         const root = fixture({ skills: { 'atn-one': 'One.\n', one: 'Plain one.\n' } });
         assert.throws(() => buildShowcase(root, generator), /the generator did not package the setup as it is/);
     });

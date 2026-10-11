@@ -174,7 +174,7 @@ What the generator does with the names:
 - The frontmatter is the one Claude Code reads, taken from the `claudecode` block.
 - The plugin carries no rules and no settings files: the Athenode CLI writes the rules into the project's rules file.
 
-The build fails when the generator cannot package the setup as it is, for example a skill without the `atn-` prefix or an MCP server whose command holds a `${VAR}`.
+The build fails when the generator cannot package the setup as it is, for example two skills that get one name once the prefix is dropped (`atn-review` beside `review`) or an MCP server whose command holds a `${VAR}`. A skill without the `atn-` prefix is not an error by itself: it keeps its name, as `/atn:review`.
 
 **The generator's version is pinned** in `package.json` (`config.athenodeCli`). The plugin follows a newer generator only when the pin is raised: raise it, run `npm run build` and commit both. A generator of any other version is refused.
 
