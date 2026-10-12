@@ -201,6 +201,10 @@ npm test
 
 `npm test` validates the setup, runs the tests of the build and fails when the committed plugin differs from what the generator builds, byte for byte. Commit the rebuilt plugin before you go on: Athenode's own build refuses a checkout with uncommitted changes.
 
+### Smithery
+
+The plugin's skills are listed on [Smithery](https://smithery.ai/skills/athenode/atn-mindmap) as `athenode/atn-<name>`. Each skill points at its directory in `plugins/claude-code/skills/` on `main`. The `Smithery skills` workflow (`.github/workflows/smithery-skills.yml`) runs on each push to `main` that changes those directories, and you can also start it by hand. It creates the new skills and refreshes the others. It needs the repository secret `SMITHERY_API_KEY`, a key of the owner of the Smithery namespace `athenode`. The workflow does not remove a skill that was taken out of the plugin: delete that skill on Smithery yourself.
+
 ## Licence
 
 The content of this repository is published under the [Apache-2.0 licence](LICENSE). Athenode is a hosted service with a Free plan, and its CLI, [`@athenode/cli`](https://www.npmjs.com/package/@athenode/cli), is published under the same licence.
