@@ -1,5 +1,6 @@
 {
   "name": "atn",
+  "displayName": "Athenode",
   "description": "Athenode's spec-driven development workflow: think the work through as a specification tree, then have Claude Code build it.",
   "version": "1.0.0",
   "author": {
@@ -14,5 +15,10 @@
     "specifications",
     "workflow",
     "athenode"
-  ]
+  ],
+  "icon": "./.claude-plugin/icon.png",
+  "documentationUrl": "https://athenode.com/docs",
+  "supportUrl": "https://athenode.com/docs/troubleshooting",
+  "privacyPolicyUrl": "https://athenode.com/privacy",
+  "termsOfServiceUrl": "https://athenode.com/terms"
 }

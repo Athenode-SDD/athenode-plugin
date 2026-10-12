@@ -2,8 +2,9 @@
 // Builds the Claude Code plugin (plugins/claude-code/) and the marketplace manifest
 // (.claude-plugin/marketplace.json) from the setup in this repository, with the plugin generator of
 // @athenode/cli. This script reads the setup (plugin-setup.mjs), pins Athenode's MCP server to the
-// generator's version, hands it to the generator and writes what comes back with the plugin's
-// README: the names, the frontmatter and the layout are the generator's.
+// generator's version, drops the unscoped Bash from the skills' allowed-tools, hands it to the
+// generator and writes what comes back with the plugin's README and icon: the names, the
+// frontmatter and the layout are the generator's.
 // See README.md, "Claude Code plugin".
 //
 //   node scripts/build-plugin.mjs           write the plugin
@@ -21,6 +22,8 @@ const GENERATOR_PACKAGE = '@athenode/cli';
 
 /** The plugin's README, which the setup has nothing for: copied into the plugin as `README.md`. */
 const README_SOURCE = 'docs/plugin-readme.md';
+/** The plugin's icon, a square PNG of 512 to 2048 px: copied into the plugin as `.claude-plugin/icon.png`. */
+const ICON_SOURCE = 'assets/icon.png';
 /** Athenode's MCP server in `mcp.json`: `@athenode/cli`, with or without a version or a tag. */
 const CLI_PACKAGE_ARG = /^@athenode\/cli(@[^@/\s]*)?$/;
 
@@ -28,6 +31,17 @@ const DESCRIPTION =
     "Athenode's spec-driven development workflow: think the work through as a specification tree, then have Claude Code build it.";
 const HOMEPAGE = 'https://athenode.com';
 const OWNER = { name: 'Athenode', url: HOMEPAGE };
+
+/** The plugin's name in Claude Code's interface and in Anthropic's directory; the commands keep the `atn:` prefix. */
+const DISPLAY_NAME = 'Athenode';
+/** The fields Anthropic's directory reads for the plugin's listing; Claude Code ignores them. */
+const LISTING = {
+    icon: './.claude-plugin/icon.png',
+    documentationUrl: `${HOMEPAGE}/docs`,
+    supportUrl: `${HOMEPAGE}/docs/troubleshooting`,
+    privacyPolicyUrl: `${HOMEPAGE}/privacy`,
+    termsOfServiceUrl: `${HOMEPAGE}/terms`,
+};
 
 /** What the setup itself has nothing for. The `version` is package.json's, added by `buildShowcase`. */
 const OPTIONS = {
@@ -86,10 +100,50 @@ export function pinAthenodeServer(setup, version) {
 }
 
 /**
+ * Drops the unscoped `Bash` from each skill's Claude Code `allowed-tools`: Anthropic's plugin
+ * directory holds a plugin whose skill pre-approves any shell command. In the plugin, Claude Code
+ * asks before each shell command instead; a scoped entry such as `Bash(git status:*)` stays.
+ */
+export function dropUnscopedBash(setup) {
+    const narrow = (tools) => {
+        const list = Array.isArray(tools) ? tools : tools.split(',').map((tool) => tool.trim());
+        const kept = list.filter((tool) => tool !== 'Bash');
+        return Array.isArray(tools) ? kept : kept.join(', ');
+    };
+    return {
+        ...setup,
+        skills: setup.skills.map((skill) => {
+            const block = skill.metadata.claudecode;
+            const tools = block?.['allowed-tools'];
+            if (typeof tools !== 'string' && !Array.isArray(tools)) {
+                return skill;
+            }
+            const { 'allowed-tools': _, ...rest } = block;
+            const narrowed = narrow(tools);
+            const claudecode = narrowed.length ? { ...rest, 'allowed-tools': narrowed } : rest;
+            return { ...skill, metadata: { ...skill.metadata, claudecode } };
+        }),
+    };
+}
+
+const MANIFEST_PATH = '.claude-plugin/plugin.json';
+
+/**
+ * Adds to the generator's manifest what its options have nothing for: `displayName` after `name`
+ * and the directory's listing fields at the end.
+ */
+export function completeManifest(text) {
+    const { name, ...rest } = JSON.parse(text);
+    return `${JSON.stringify({ name, displayName: DISPLAY_NAME, ...rest, ...LISTING }, null, 2)}\n`;
+}
+
+/**
  * Builds the showcase from the setup under `root`: a map from a path relative to `root` to the
  * bytes of the file, the package under `plugins/claude-code/` and the marketplace manifest. Holds
  * what the generator returned, given the setup with Athenode's MCP server pinned to the generator's
- * version and package.json's `version`, plus the README from `docs/plugin-readme.md`. Throws when
+ * version and without the unscoped `Bash` in the skills' `allowed-tools`, and package.json's
+ * `version`, with the manifest completed (`completeManifest`), plus the README from
+ * `docs/plugin-readme.md` and the icon from `assets/icon.png`. Throws when
  * the generator left something of the setup out or had something to say about it: the showcase is
  * the whole setup or nothing.
  */
@@ -101,7 +155,10 @@ export function buildShowcase(root, generator) {
     if (!existsSync(join(root, README_SOURCE))) {
         throw new Error(`${README_SOURCE} is missing: it is the plugin's README`);
     }
-    const setup = pinAthenodeServer(loadPluginSetup(root), generator.version);
+    if (!existsSync(join(root, ICON_SOURCE))) {
+        throw new Error(`${ICON_SOURCE} is missing: it is the plugin's icon`);
+    }
+    const setup = dropUnscopedBash(pinAthenodeServer(loadPluginSetup(root), generator.version));
     const result = generator.module.buildPluginPackage(setup, TOOL, { ...OPTIONS, version });
     const problems = [
         ...result.notices.map((notice) => `${notice.code}: ${notice.message}`),
@@ -116,9 +173,11 @@ export function buildShowcase(root, generator) {
     }
     const files = new Map();
     for (const file of result.files) {
-        files.set(`${PLUGIN_DIR}/${file.path}`, Buffer.from(file.content));
+        const content = file.path === MANIFEST_PATH ? completeManifest(Buffer.from(file.content).toString('utf8')) : file.content;
+        files.set(`${PLUGIN_DIR}/${file.path}`, Buffer.from(content));
     }
     files.set(`${PLUGIN_DIR}/README.md`, readFileSync(join(root, README_SOURCE)));
+    files.set(`${PLUGIN_DIR}/.claude-plugin/icon.png`, readFileSync(join(root, ICON_SOURCE)));
     files.set(result.catalog.path, Buffer.from(result.catalog.content));
     return files;
 }

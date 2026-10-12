@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { after, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { buildShowcase, checkShowcase, main, pinAthenodeServer, resolveGenerator } from './build-plugin.mjs';
+import { buildShowcase, checkShowcase, dropUnscopedBash, main, pinAthenodeServer, resolveGenerator } from './build-plugin.mjs';
 import { loadPluginSetup } from './plugin-setup.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -39,11 +39,14 @@ const document = (name, extra, body) => `---\nname: ${name}\ndescription: Use wh
 const STDIO = { type: 'stdio', command: 'npx', args: ['-y', 'some-server'] };
 
 /** A setup directory: `skills` and `agents` map a name to a body, or to a whole file with `{raw}`. */
-function fixture({ skills = { 'atn-one': 'Body of one.\n' }, agents = { helper: 'Prompt of helper.\n' }, servers = { local: STDIO }, pin = PIN, version = '1.2.3', readme = '# Fixture\n' } = {}) {
+function fixture({ skills = { 'atn-one': 'Body of one.\n' }, agents = { helper: 'Prompt of helper.\n' }, servers = { local: STDIO }, pin = PIN, version = '1.2.3', readme = '# Fixture\n', icon = 'PNG' } = {}) {
     const root = join(tempDir(), 'setup');
     write(root, 'package.json', JSON.stringify({ name: 'fixture', version, devDependencies: { '@athenode/cli': pin } }));
     if (readme !== null) {
         write(root, 'docs/plugin-readme.md', readme);
+    }
+    if (icon !== null) {
+        write(root, 'assets/icon.png', icon);
     }
     for (const [name, body] of Object.entries(skills)) {
         write(root, `skills/${name}/SKILL.md`, typeof body === 'string' ? document(name, '', body) : body.raw);
@@ -321,6 +324,25 @@ describe('pinning Athenode\'s MCP server', () => {
     });
 });
 
+describe('dropping the unscoped Bash', () => {
+    const setup = (claudecode) => ({ slug: 'atn', skills: [{ name: 's', metadata: { description: 'd', ...(claudecode && { claudecode }) }, content: 'c', files: [] }], agents: [], mcpServers: [] });
+    const narrowed = (claudecode) => dropUnscopedBash(setup(claudecode)).skills[0].metadata;
+
+    test('removes Bash from a comma list and from a list, and keeps a scoped Bash and the rest', () => {
+        assert.equal(narrowed({ 'allowed-tools': 'Agent, Bash, Read' }).claudecode['allowed-tools'], 'Agent, Read');
+        assert.deepEqual(narrowed({ 'allowed-tools': ['Bash', 'Bash(git status:*)', 'Read'] }).claudecode['allowed-tools'], ['Bash(git status:*)', 'Read']);
+        assert.deepEqual(narrowed({ 'allowed-tools': 'Read', model: 'x' }).claudecode, { 'allowed-tools': 'Read', model: 'x' });
+    });
+
+    test('drops allowed-tools that held only Bash, leaves a skill without the field alone, and the setup given', () => {
+        assert.deepEqual(narrowed({ 'allowed-tools': 'Bash', 'argument-hint': '[id]' }).claudecode, { 'argument-hint': '[id]' });
+        assert.deepEqual(narrowed(null), { description: 'd' });
+        const given = setup({ 'allowed-tools': 'Bash, Read' });
+        dropUnscopedBash(given);
+        assert.equal(given.skills[0].metadata.claudecode['allowed-tools'], 'Bash, Read');
+    });
+});
+
 describe('the build', () => {
     let generator = null;
     let skip = false;
@@ -334,6 +356,7 @@ describe('the build', () => {
         const files = buildShowcase(fixture(), generator);
         assert.deepEqual([...files.keys()].sort(), [
             MARKETPLACE_FILE,
+            `${PLUGIN_DIR}/.claude-plugin/icon.png`,
             `${PLUGIN_DIR}/.claude-plugin/plugin.json`,
             `${PLUGIN_DIR}/.mcp.json`,
             `${PLUGIN_DIR}/README.md`,
@@ -355,12 +378,39 @@ describe('the build', () => {
         assert.equal(manifest.version, '1.2.3');
     });
 
+    test('shows the plugin as Athenode and carries the directory\'s listing fields', { skip }, () => {
+        const manifest = JSON.parse(text(buildShowcase(fixture(), generator), `${PLUGIN_DIR}/.claude-plugin/plugin.json`));
+        assert.deepEqual(Object.keys(manifest).slice(0, 2), ['name', 'displayName']);
+        assert.equal(manifest.name, 'atn');
+        assert.equal(manifest.displayName, 'Athenode');
+        assert.equal(manifest.icon, './.claude-plugin/icon.png');
+        assert.equal(manifest.documentationUrl, 'https://athenode.com/docs');
+        assert.equal(manifest.supportUrl, 'https://athenode.com/docs/troubleshooting');
+        assert.equal(manifest.privacyPolicyUrl, 'https://athenode.com/privacy');
+        assert.equal(manifest.termsOfServiceUrl, 'https://athenode.com/terms');
+    });
+
     test('copies docs/plugin-readme.md into the plugin as README.md', { skip }, () => {
         assert.equal(text(buildShowcase(fixture({ readme: '# Read me\n' }), generator), `${PLUGIN_DIR}/README.md`), '# Read me\n');
     });
 
-    test('fails without a README source or a major.minor.patch version', { skip }, () => {
+    test('copies assets/icon.png into the plugin as .claude-plugin/icon.png', { skip }, () => {
+        assert.equal(text(buildShowcase(fixture({ icon: 'icon bytes' }), generator), `${PLUGIN_DIR}/.claude-plugin/icon.png`), 'icon bytes');
+    });
+
+    test('drops the unscoped Bash from a skill\'s allowed-tools in the package', { skip }, () => {
+        const root = fixture({
+            skills: { 'atn-one': { raw: '---\nname: atn-one\ndescription: Use when one.\nclaudecode:\n  allowed-tools: Agent, Bash, Read\n---\n\nBody of one.\n' } },
+        });
+        const skill = text(buildShowcase(root, generator), `${PLUGIN_DIR}/skills/one/SKILL.md`);
+        const frontmatter = skill.slice(0, skill.indexOf('\n---\n'));
+        assert.match(frontmatter, /allowed-tools: .*Agent, Read/);
+        assert.doesNotMatch(frontmatter, /Bash/);
+    });
+
+    test('fails without a README source, an icon or a major.minor.patch version', { skip }, () => {
         assert.throws(() => buildShowcase(fixture({ readme: null }), generator), /docs\/plugin-readme\.md is missing/);
+        assert.throws(() => buildShowcase(fixture({ icon: null }), generator), /assets\/icon\.png is missing/);
         assert.throws(() => buildShowcase(fixture({ version: null }), generator), /must hold the plugin's version/);
         assert.throws(() => buildShowcase(fixture({ version: '1.0' }), generator), /must hold the plugin's version/);
     });
@@ -421,7 +471,7 @@ describe('the build', () => {
     test('builds this repository: prefix-free skills, renamed references, no rules and no hook', { skip }, () => {
         const files = buildShowcase(ROOT, generator);
         const paths = [...files.keys()];
-        assert.equal(paths.length, 21);
+        assert.equal(paths.length, 22);
         assert.ok(paths.every((path) => path === MARKETPLACE_FILE || path.startsWith(`${PLUGIN_DIR}/`)));
         const skills = paths.filter((path) => path.startsWith(`${PLUGIN_DIR}/skills/`)).map((path) => path.split('/')[3]).sort();
         assert.deepEqual(skills, ['apply', 'decompose', 'manage', 'mindmap', 'settings', 'todo-dequeue', 'todo-enqueue']);
@@ -433,6 +483,10 @@ describe('the build', () => {
         assert.doesNotMatch(mindmap, /`atn-apply`/);
 
         assert.ok(!paths.some((path) => /hook|rules|CLAUDE\.md|AGENTS\.md/i.test(path)));
+        for (const path of paths.filter((path) => path.endsWith('/SKILL.md'))) {
+            const frontmatter = text(files, path).split('\n---\n')[0];
+            assert.doesNotMatch(frontmatter, /allowed-tools:.*\bBash\b(?!\()/, path);
+        }
         const rules = readFileSync(join(ROOT, 'rules/athenode.md'), 'utf8').split('\n').find((line) => line.trim().length > 40);
         assert.ok([...files.values()].every((content) => !content.toString('utf8').includes(rules)));
 
