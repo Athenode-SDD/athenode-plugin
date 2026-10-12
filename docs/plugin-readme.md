@@ -32,6 +32,8 @@ On Claude Code before 2.1.275, add the marketplace first with `/plugin marketpla
 
 The 10 agents (`atn:spec-implementer`, `atn:spec-implementation-reviewer` and the others) are run by the skills; you do not run them yourself.
 
+The skills pre-approve no shell commands: Claude Code asks before each one they run, such as `git status` or `git commit`. To let a long `/atn:apply` run go on by itself, allow the commands you trust in your [permission settings](https://code.claude.com/docs/en/permissions).
+
 ## Examples
 
 1. `/atn:settings`, then answer the questions: the project's workflow settings are chosen and stored.

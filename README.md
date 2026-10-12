@@ -178,6 +178,8 @@ What the build adds for [Anthropic's plugin directory](https://claude.com/docs/p
 
 - **README.** `plugins/claude-code/README.md` is a copy of `docs/plugin-readme.md`. It must describe everything the plugin runs, sends and fetches: update it with any change to that.
 - **Version.** The plugin's `version` is the `version` of `package.json`. Raise it with each change to the plugin: Claude Code updates an installed plugin only when its version changes.
+- **Icon.** `plugins/claude-code/.claude-plugin/icon.png` is a copy of `assets/icon.png`, a square PNG of 512 to 2048 px.
+- **No unscoped `Bash`.** Each skill's `allowed-tools` loses the plain `Bash`, which pre-approves any shell command and holds the plugin for review: in the plugin, Claude Code asks before each shell command. The setup itself, installed by the CLI, keeps it.
 - **Pinned MCP server.** In the plugin, Athenode's MCP server runs `@athenode/cli` at the generator's version (the pin below), not `@latest` as in `mcp.json`: the directory refuses a launcher without an exact version. Raising the pin moves both.
 
 The build fails when the generator cannot package the setup as it is, for example two skills that get one name once the prefix is dropped (`atn-review` beside `review`) or an MCP server whose command holds a `${VAR}`. A skill without the `atn-` prefix is not an error by itself: it keeps its name, as `/atn:review`.

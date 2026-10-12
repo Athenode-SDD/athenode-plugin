@@ -3,7 +3,7 @@ name: mindmap
 description: >-
   Use when shaping a new specification, or continuing an existing one, through
   researched question rounds until it is prepared.
-allowed-tools: 'Agent, AskUserQuestion, Skill, Bash, WebSearch, WebFetch'
+allowed-tools: 'Agent, AskUserQuestion, Skill, WebSearch, WebFetch'
 argument-hint: >-
   [--continue <spec_id> | --from-todo <card_id>] [--auto-apply]
   [--auto-decompose]
