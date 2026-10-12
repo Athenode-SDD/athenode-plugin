@@ -1,0 +1,49 @@
+name: Smithery skills
+
+# Lists the Claude Code plugin's skills on Smithery (smithery.ai/skills/athenode/atn-<name>).
+# Each Smithery skill points at its directory in plugins/claude-code/skills/ on main; the PUT is
+# idempotent, so every run creates the new skills and refreshes the others. A skill removed from
+# the plugin stays on Smithery until it is deleted there.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - plugins/claude-code/skills/**
+      - .github/workflows/smithery-skills.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smithery-skills
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      NAMESPACE: athenode
+      SMITHERY_API_KEY: ${{ secrets.SMITHERY_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish the skills
+        run: |
+          set -euo pipefail
+          if [ -z "${SMITHERY_API_KEY}" ]; then
+            echo "::error::The repository secret SMITHERY_API_KEY (a key of the owner of the Smithery namespace ${NAMESPACE}) is not set."
+            exit 1
+          fi
+
+          base="https://github.com/${GITHUB_REPOSITORY}/tree/main/plugins/claude-code/skills"
+          for dir in plugins/claude-code/skills/*/; do
+            skill=$(basename "${dir}")
+            test -f "${dir}SKILL.md" || continue
+            echo "== ${NAMESPACE}/atn-${skill}"
+            curl -sS --fail-with-body -X PUT "https://api.smithery.ai/skills/${NAMESPACE}/atn-${skill}" \
+              -H "Authorization: Bearer ${SMITHERY_API_KEY}" \
+              -H "Content-Type: application/json" \
+              -d "{\"gitUrl\": \"${base}/${skill}\"}"
+            echo
+          done
