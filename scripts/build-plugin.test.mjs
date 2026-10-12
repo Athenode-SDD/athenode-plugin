@@ -2,18 +2,18 @@
 // and the drift check (build-plugin.mjs). Run with `node --test scripts/*.test.mjs`.
 //
 // The tests that build a package need the generator of @athenode/cli; where it cannot be resolved
-// (see README.md, "Claude Code plugin") they are skipped, and the others still run.
+// (`npm ci` not run) they are skipped, and the others still run.
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { after, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { buildShowcase, checkShowcase, main, resolveGenerator } from './build-plugin.mjs';
+import { buildShowcase, checkShowcase, main, pinAthenodeServer, resolveGenerator } from './build-plugin.mjs';
 import { loadPluginSetup } from './plugin-setup.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const PIN = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).config.athenodeCli;
+const PIN = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).devDependencies['@athenode/cli'];
 const PLUGIN_DIR = 'plugins/claude-code';
 const MARKETPLACE_FILE = '.claude-plugin/marketplace.json';
 
@@ -39,9 +39,12 @@ const document = (name, extra, body) => `---\nname: ${name}\ndescription: Use wh
 const STDIO = { type: 'stdio', command: 'npx', args: ['-y', 'some-server'] };
 
 /** A setup directory: `skills` and `agents` map a name to a body, or to a whole file with `{raw}`. */
-function fixture({ skills = { 'atn-one': 'Body of one.\n' }, agents = { helper: 'Prompt of helper.\n' }, servers = { local: STDIO }, pin = PIN } = {}) {
+function fixture({ skills = { 'atn-one': 'Body of one.\n' }, agents = { helper: 'Prompt of helper.\n' }, servers = { local: STDIO }, pin = PIN, version = '1.2.3', readme = '# Fixture\n' } = {}) {
     const root = join(tempDir(), 'setup');
-    write(root, 'package.json', JSON.stringify({ name: 'fixture', config: { athenodeCli: pin } }));
+    write(root, 'package.json', JSON.stringify({ name: 'fixture', version, devDependencies: { '@athenode/cli': pin } }));
+    if (readme !== null) {
+        write(root, 'docs/plugin-readme.md', readme);
+    }
     for (const [name, body] of Object.entries(skills)) {
         write(root, `skills/${name}/SKILL.md`, typeof body === 'string' ? document(name, '', body) : body.raw);
     }
@@ -188,117 +191,65 @@ describe('the adapter', () => {
 });
 
 describe('the resolver of the generator', () => {
-    test('prefers the installed module', () => {
+    const installed = (root, version, marker) => fakeCli(join(root, 'node_modules/@athenode/cli'), version, marker);
+
+    test('loads the installed module of the pinned version', () => {
         const root = fixture();
-        fakeCli(join(root, 'node_modules/@athenode/cli'), PIN, 'installed');
-        fakeCli(join(root, '../cli'), PIN, 'sibling');
-        const other = tempDir();
-        fakeCli(other, PIN, 'env');
-        const generator = resolveGenerator({ root, env: { ATHENODE_CLI_DIR: other } });
+        installed(root, PIN, 'installed');
+        const generator = resolveGenerator({ root });
         assert.equal(generator.module.marker, 'installed');
-        assert.equal(generator.version, PIN);
-        assert.match(generator.source, /node_modules/);
-    });
-
-    test('uses ATHENODE_CLI_DIR before the sibling checkout', () => {
-        const root = fixture();
-        fakeCli(join(root, '../cli'), PIN, 'sibling');
-        const other = tempDir();
-        fakeCli(other, PIN, 'env');
-        const generator = resolveGenerator({ root, env: { ATHENODE_CLI_DIR: other } });
-        assert.equal(generator.module.marker, 'env');
-        assert.match(generator.source, /ATHENODE_CLI_DIR/);
-    });
-
-    test('falls back to the sibling checkout', () => {
-        const root = fixture();
-        fakeCli(join(root, '../cli'), PIN, 'sibling');
-        const generator = resolveGenerator({ root, env: {} });
-        assert.equal(generator.module.marker, 'sibling');
         assert.equal(typeof generator.module.buildPluginPackage, 'function');
+        assert.equal(generator.version, PIN);
     });
 
-    test('rejects a version other than the pin, whatever the source', () => {
-        const installed = fixture();
-        fakeCli(join(installed, 'node_modules/@athenode/cli'), '0.0.1', 'installed');
-        fakeCli(join(installed, '../cli'), PIN, 'sibling');
-        assert.throws(() => resolveGenerator({ root: installed, env: {} }), new RegExp(`is version 0\\.0\\.1, but package\\.json pins ${PIN.replaceAll('.', '\\.')}`));
-
-        const fromEnv = fixture();
-        const other = tempDir();
-        fakeCli(other, '0.0.2', 'env');
-        assert.throws(() => resolveGenerator({ root: fromEnv, env: { ATHENODE_CLI_DIR: other } }), /is version 0\.0\.2/);
-
-        const sibling = fixture();
-        fakeCli(join(sibling, '../cli'), '0.0.3', 'sibling');
-        assert.throws(() => resolveGenerator({ root: sibling, env: {} }), /is version 0\.0\.3/);
-    });
-
-    test('rejects an ATHENODE_CLI_DIR that holds no built generator', () => {
+    test('rejects an installed version other than the pin', () => {
         const root = fixture();
-        const empty = tempDir();
-        assert.throws(() => resolveGenerator({ root, env: { ATHENODE_CLI_DIR: empty } }), /ATHENODE_CLI_DIR .*holds no dist\/plugin\/index\.js/);
+        installed(root, '0.0.1', 'installed');
+        assert.throws(() => resolveGenerator({ root }), new RegExp(`is version 0\\.0\\.1, but package\\.json pins ${PIN.replaceAll('.', '\\.')}; run \`npm ci\``));
     });
 
-    test('rejects a package.json without a pin', () => {
+    test('rejects a generator that is not installed', () => {
+        assert.throws(() => resolveGenerator({ root: fixture() }), new RegExp(`@athenode/cli ${PIN.replaceAll('.', '\\.')} is not installed; run \`npm ci\``));
+    });
+
+    test('rejects a missing pin and a pin that is not an exact version', () => {
         const root = fixture();
         write(root, 'package.json', JSON.stringify({ name: 'fixture' }));
-        assert.throws(() => resolveGenerator({ root, env: {} }), /config\.athenodeCli/);
-    });
-
-    test('reports that nothing was found, with the pin and the places it looked in', () => {
-        const root = fixture();
-        const generator = resolveGenerator({ root, env: {} });
-        assert.equal(generator.module, null);
-        assert.equal(generator.version, PIN);
-        assert.deepEqual(generator.tried.map((place) => place.split(' ')[0]), ['node_modules/@athenode/cli', 'the']);
-        assert.equal(resolveGenerator({ root, env: { ATHENODE_CLI_DIR: '' } }).module, null);
+        assert.throws(() => resolveGenerator({ root }), /must pin @athenode\/cli to an exact version/);
+        for (const pin of ['^0.9.1', 'latest', '0.9']) {
+            assert.throws(() => resolveGenerator({ root: fixture({ pin }) }), /must pin @athenode\/cli to an exact version/);
+        }
     });
 });
 
 describe('the command', () => {
-    function run(args, root, env) {
+    function run(args, root) {
         const out = [];
         const err = [];
-        const code = main(args, { root, env, log: (line) => out.push(line), error: (line) => err.push(line) });
+        const code = main(args, { root, log: (line) => out.push(line), error: (line) => err.push(line) });
         return { code, out: out.join('\n'), err: err.join('\n') };
     }
 
-    test('--check without a generator fails when CI is not set', () => {
-        for (const env of [{}, { CI: '' }, { CI: 'false' }]) {
-            const result = run(['--check'], fixture(), env);
-            assert.equal(result.code, 1);
-            assert.match(result.err, new RegExp(`@athenode/cli ${PIN.replaceAll('.', '\\.')} is not installed`));
-            assert.match(result.err, /ATHENODE_CLI_DIR/);
-        }
-    });
-
-    test('--check without a generator is skipped with a warning annotation when CI is set', () => {
-        const result = run(['--check'], fixture(), { CI: 'true' });
-        assert.equal(result.code, 0);
-        assert.match(result.out, new RegExp(`^::warning::plugin drift check SKIPPED: @athenode/cli ${PIN.replaceAll('.', '\\.')} is not installed`));
-    });
-
-    test('a build without a generator fails, CI or not', () => {
-        for (const env of [{}, { CI: 'true' }]) {
+    test('a check or a build without the generator fails and writes nothing', () => {
+        for (const args of [['--check'], []]) {
             const root = fixture();
-            const result = run([], root, env);
+            const result = run(args, root);
             assert.equal(result.code, 1);
-            assert.match(result.err, /is not installed/);
+            assert.match(result.err, /is not installed; run `npm ci`/);
             assert.deepEqual(checkShowcase(root, new Map()), []);
         }
     });
 
-    test('a generator of another version fails the check even when CI is set', () => {
+    test('a generator of another version fails the check', () => {
         const root = fixture();
-        fakeCli(join(root, '../cli'), '0.0.1', 'sibling');
-        const result = run(['--check'], root, { CI: 'true' });
+        fakeCli(join(root, 'node_modules/@athenode/cli'), '0.0.1', 'installed');
+        const result = run(['--check'], root);
         assert.equal(result.code, 1);
         assert.match(result.err, /is version 0\.0\.1/);
     });
 
     test('an unknown argument is refused', () => {
-        const result = run(['--chekc'], fixture(), {});
+        const result = run(['--chekc'], fixture());
         assert.equal(result.code, 1);
         assert.match(result.err, /--chekc/);
     });
@@ -350,9 +301,34 @@ describe('the drift check', () => {
     });
 });
 
+describe('pinning Athenode\'s MCP server', () => {
+    const setup = (args) => ({ slug: 'atn', skills: [], agents: [], mcpServers: [{ name: 's', transport: 'stdio', command: 'npx', args, env: null, url: null, headers: null }] });
+    const pinned = (args) => pinAthenodeServer(setup(args), '9.8.7').mcpServers[0].args;
+
+    test('replaces @latest, any other version and no version with the given one', () => {
+        assert.deepEqual(pinned(['-y', '@athenode/cli@latest', 'mcp']), ['-y', '@athenode/cli@9.8.7', 'mcp']);
+        assert.deepEqual(pinned(['@athenode/cli@0.1.0', 'mcp']), ['@athenode/cli@9.8.7', 'mcp']);
+        assert.deepEqual(pinned(['@athenode/cli', 'mcp']), ['@athenode/cli@9.8.7', 'mcp']);
+    });
+
+    test('leaves other packages, a remote server and the setup given alone', () => {
+        assert.deepEqual(pinned(['-y', '@athenode/cli-extra@latest', 'other@latest']), ['-y', '@athenode/cli-extra@latest', 'other@latest']);
+        const remote = { slug: 'atn', skills: [], agents: [], mcpServers: [{ name: 'r', transport: 'http', command: null, args: null, env: null, url: 'https://example.com', headers: null }] };
+        assert.deepEqual(pinAthenodeServer(remote, '9.8.7'), remote);
+        const given = setup(['@athenode/cli@latest']);
+        pinAthenodeServer(given, '9.8.7');
+        assert.deepEqual(given.mcpServers[0].args, ['@athenode/cli@latest']);
+    });
+});
+
 describe('the build', () => {
-    const generator = resolveGenerator();
-    const skip = generator.module ? false : `@athenode/cli ${generator.version} is not installed (see README.md, "Claude Code plugin")`;
+    let generator = null;
+    let skip = false;
+    try {
+        generator = resolveGenerator();
+    } catch (cause) {
+        skip = cause.message;
+    }
 
     test('writes the marketplace file and files under the plugin directory, nothing else', { skip }, () => {
         const files = buildShowcase(fixture(), generator);
@@ -360,13 +336,14 @@ describe('the build', () => {
             MARKETPLACE_FILE,
             `${PLUGIN_DIR}/.claude-plugin/plugin.json`,
             `${PLUGIN_DIR}/.mcp.json`,
+            `${PLUGIN_DIR}/README.md`,
             `${PLUGIN_DIR}/agents/helper.md`,
             `${PLUGIN_DIR}/skills/one/SKILL.md`,
         ]);
         assert.ok([...files.values()].every((content) => Buffer.isBuffer(content)));
     });
 
-    test('names the plugin atn, with the descriptive fields and no version', { skip }, () => {
+    test('names the plugin atn, with the descriptive fields and package.json\'s version', { skip }, () => {
         const manifest = JSON.parse(text(buildShowcase(fixture(), generator), `${PLUGIN_DIR}/.claude-plugin/plugin.json`));
         assert.equal(manifest.name, 'atn');
         assert.match(manifest.description, /^Athenode's spec-driven development workflow/);
@@ -375,7 +352,23 @@ describe('the build', () => {
         assert.equal(manifest.repository, 'https://github.com/Athenode-SDD/athenode-setup');
         assert.equal(manifest.license, 'Apache-2.0');
         assert.deepEqual(manifest.keywords, ['spec-driven-development', 'specifications', 'workflow', 'athenode']);
-        assert.ok(!('version' in manifest));
+        assert.equal(manifest.version, '1.2.3');
+    });
+
+    test('copies docs/plugin-readme.md into the plugin as README.md', { skip }, () => {
+        assert.equal(text(buildShowcase(fixture({ readme: '# Read me\n' }), generator), `${PLUGIN_DIR}/README.md`), '# Read me\n');
+    });
+
+    test('fails without a README source or a major.minor.patch version', { skip }, () => {
+        assert.throws(() => buildShowcase(fixture({ readme: null }), generator), /docs\/plugin-readme\.md is missing/);
+        assert.throws(() => buildShowcase(fixture({ version: null }), generator), /must hold the plugin's version/);
+        assert.throws(() => buildShowcase(fixture({ version: '1.0' }), generator), /must hold the plugin's version/);
+    });
+
+    test('pins Athenode\'s MCP server to the generator\'s version in the package', { skip }, () => {
+        const servers = { athenode: { type: 'stdio', command: 'npx', args: ['-y', '@athenode/cli@latest', 'mcp'] } };
+        const mcp = JSON.parse(text(buildShowcase(fixture({ servers }), generator), `${PLUGIN_DIR}/.mcp.json`));
+        assert.deepEqual(mcp.mcpServers.athenode.args, ['-y', `@athenode/cli@${PIN}`, 'mcp']);
     });
 
     test('lists exactly one plugin, atn, in the marketplace athenode', { skip }, () => {
@@ -428,7 +421,7 @@ describe('the build', () => {
     test('builds this repository: prefix-free skills, renamed references, no rules and no hook', { skip }, () => {
         const files = buildShowcase(ROOT, generator);
         const paths = [...files.keys()];
-        assert.equal(paths.length, 20);
+        assert.equal(paths.length, 21);
         assert.ok(paths.every((path) => path === MARKETPLACE_FILE || path.startsWith(`${PLUGIN_DIR}/`)));
         const skills = paths.filter((path) => path.startsWith(`${PLUGIN_DIR}/skills/`)).map((path) => path.split('/')[3]).sort();
         assert.deepEqual(skills, ['apply', 'decompose', 'manage', 'mindmap', 'settings', 'todo-dequeue', 'todo-enqueue']);
@@ -443,7 +436,9 @@ describe('the build', () => {
         const rules = readFileSync(join(ROOT, 'rules/athenode.md'), 'utf8').split('\n').find((line) => line.trim().length > 40);
         assert.ok([...files.values()].every((content) => !content.toString('utf8').includes(rules)));
 
-        assert.deepEqual(JSON.parse(text(files, `${PLUGIN_DIR}/.mcp.json`)), JSON.parse(readFileSync(join(ROOT, 'mcp.json'), 'utf8')));
+        const servers = JSON.parse(readFileSync(join(ROOT, 'mcp.json'), 'utf8')).mcpServers;
+        servers.athenode.args = servers.athenode.args.map((arg) => arg.replace(/^@athenode\/cli@latest$/, `@athenode/cli@${PIN}`));
+        assert.deepEqual(JSON.parse(text(files, `${PLUGIN_DIR}/.mcp.json`)).mcpServers, servers);
     });
 
     test('is deterministic', { skip }, () => {

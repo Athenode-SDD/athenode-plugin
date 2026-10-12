@@ -5,7 +5,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@athenode/cli@latest",
+        "@athenode/cli@0.9.1",
         "mcp"
       ]
     }

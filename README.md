@@ -159,7 +159,7 @@ copilot:
 
 ### Claude Code plugin
 
-`plugins/claude-code/` and `.claude-plugin/marketplace.json` are generated and are never edited by hand. They are built by the plugin generator of the Athenode CLI ([`@athenode/cli`](https://www.npmjs.com/package/@athenode/cli), its `@athenode/cli/plugin` entry), the same one the CLI uses to install a setup as a plugin, so the plugin here is what the CLI builds from a project's copy of this setup. `scripts/build-plugin.mjs` only reads the files, hands them to the generator and writes what comes back; it changes nothing in the result.
+`plugins/claude-code/` and `.claude-plugin/marketplace.json` are generated and are never edited by hand. They are built by the plugin generator of the Athenode CLI ([`@athenode/cli`](https://www.npmjs.com/package/@athenode/cli), its `@athenode/cli/plugin` entry), the same one the CLI uses to install a setup as a plugin, so the plugin here is what the CLI builds from a project's copy of this setup. `scripts/build-plugin.mjs` reads the files, hands them to the generator and writes what comes back, with the additions listed below.
 
 After a change to a skill, an agent or `mcp.json`, regenerate the plugin and commit the result with the change:
 
@@ -174,9 +174,17 @@ What the generator does with the names:
 - The frontmatter is the one Claude Code reads, taken from the `claudecode` block.
 - The plugin carries no rules and no settings files: the Athenode CLI writes the rules into the project's rules file.
 
+What the build adds for [Anthropic's plugin directory](https://claude.com/docs/plugins/submit), which the setup itself has nothing for:
+
+- **README.** `plugins/claude-code/README.md` is a copy of `docs/plugin-readme.md`. It must describe everything the plugin runs, sends and fetches: update it with any change to that.
+- **Version.** The plugin's `version` is the `version` of `package.json`. Raise it with each change to the plugin: Claude Code updates an installed plugin only when its version changes.
+- **Pinned MCP server.** In the plugin, Athenode's MCP server runs `@athenode/cli` at the generator's version (the pin below), not `@latest` as in `mcp.json`: the directory refuses a launcher without an exact version. Raising the pin moves both.
+
 The build fails when the generator cannot package the setup as it is, for example two skills that get one name once the prefix is dropped (`atn-review` beside `review`) or an MCP server whose command holds a `${VAR}`. A skill without the `atn-` prefix is not an error by itself: it keeps its name, as `/atn:review`.
 
-**The generator's version is pinned** in `package.json` (`config.athenodeCli`). The plugin follows a newer generator only when the pin is raised: raise it, run `npm run build` and commit both. A generator of any other version is refused.
+**The generator's version is pinned** in `package.json`: `@athenode/cli` in `devDependencies`, an exact version, installed by `npm ci`. A generator of any other version is refused.
+
+The pin follows the CLI's releases by itself. `npm ci` (its `prepare` script) points git at `.githooks/`, whose `pre-commit` hook runs `scripts/update-cli.mjs` before each commit: when npm has a newer `@athenode/cli`, it installs it as the new pin, raises the patch of the plugin's `version`, rebuilds the plugin and stages `package.json`, `package-lock.json` and the plugin into the commit. Without an answer from npm it changes nothing and lets the commit through. To raise the pin outside a commit, run `npm run update-cli`; to commit without the hook, set `ATHENODE_SKIP_CLI_UPDATE=1`.
 
 `scripts/plugin-setup.mjs` reads the setup for the generator. It is the twin of `loadSetup` in Athenode's `backend-java/scripts/default-setup/generate.mjs`, which turns the same files into the setup a project gets; a change to how a file is read belongs in both.
 
@@ -191,15 +199,6 @@ npm test
 ```
 
 `npm test` validates the setup, runs the tests of the build and fails when the committed plugin differs from what the generator builds, byte for byte. Commit the rebuilt plugin before you go on: Athenode's own build refuses a checkout with uncommitted changes.
-
-#### Until `@athenode/cli` 0.9.0 is on npm
-
-The pinned version is not published yet, so it is not a dependency in `package.json` and `npm ci` does not install it. Until it is:
-
-- The build looks for the generator in `node_modules/@athenode/cli`, then in the checkout named by the environment variable `ATHENODE_CLI_DIR`, then in a checkout next to this repository, `../cli`. A checkout must be at the pinned version and built (`npm ci && npm run build` in it).
-- Without a generator, `npm run build` fails, and so does `npm test`, **except where the environment variable `CI` is set**: there the comparison of the plugin with the setup is skipped with a warning, and the tests that need the generator are skipped too. So the GitHub workflow is green without having compared the plugin, and a stale plugin is caught on a contributor's machine only.
-
-Once 0.9.0 is published: add `"@athenode/cli": "0.9.0"` to `devDependencies`, regenerate `package-lock.json`, and remove the two fallbacks, the `config.athenodeCli` pin and the skip on CI from `scripts/build-plugin.mjs`. The comparison then runs everywhere.
 
 ## Licence
 
