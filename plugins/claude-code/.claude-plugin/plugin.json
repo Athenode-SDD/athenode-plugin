@@ -1,6 +1,7 @@
 {
   "name": "atn",
   "description": "Athenode's spec-driven development workflow: think the work through as a specification tree, then have Claude Code build it.",
+  "version": "1.0.0",
   "author": {
     "name": "Athenode",
     "url": "https://athenode.com"

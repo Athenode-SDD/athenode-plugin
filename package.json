@@ -1,16 +1,17 @@
 {
   "name": "athenode-standard-setup",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
-  "config": {
-    "athenodeCli": "0.9.0"
-  },
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks",
     "build": "node scripts/build-plugin.mjs",
+    "update-cli": "node scripts/update-cli.mjs",
     "test": "node scripts/validate.mjs && node --test scripts/*.test.mjs && node scripts/build-plugin.mjs --check"
   },
   "devDependencies": {
+    "@athenode/cli": "0.9.1",
     "yaml": "2.8.1"
   }
 }
