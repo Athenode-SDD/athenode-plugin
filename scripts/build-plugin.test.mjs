@@ -378,6 +378,18 @@ describe('the build', () => {
         assert.equal(manifest.version, '1.2.3');
     });
 
+    test('shows the plugin as Athenode and carries the directory\'s listing fields', { skip }, () => {
+        const manifest = JSON.parse(text(buildShowcase(fixture(), generator), `${PLUGIN_DIR}/.claude-plugin/plugin.json`));
+        assert.deepEqual(Object.keys(manifest).slice(0, 2), ['name', 'displayName']);
+        assert.equal(manifest.name, 'atn');
+        assert.equal(manifest.displayName, 'Athenode');
+        assert.equal(manifest.icon, './.claude-plugin/icon.png');
+        assert.equal(manifest.documentationUrl, 'https://athenode.com/docs');
+        assert.equal(manifest.supportUrl, 'https://athenode.com/docs/troubleshooting');
+        assert.equal(manifest.privacyPolicyUrl, 'https://athenode.com/privacy');
+        assert.equal(manifest.termsOfServiceUrl, 'https://athenode.com/terms');
+    });
+
     test('copies docs/plugin-readme.md into the plugin as README.md', { skip }, () => {
         assert.equal(text(buildShowcase(fixture({ readme: '# Read me\n' }), generator), `${PLUGIN_DIR}/README.md`), '# Read me\n');
     });

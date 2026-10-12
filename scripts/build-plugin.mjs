@@ -32,6 +32,17 @@ const DESCRIPTION =
 const HOMEPAGE = 'https://athenode.com';
 const OWNER = { name: 'Athenode', url: HOMEPAGE };
 
+/** The plugin's name in Claude Code's interface and in Anthropic's directory; the commands keep the `atn:` prefix. */
+const DISPLAY_NAME = 'Athenode';
+/** The fields Anthropic's directory reads for the plugin's listing; Claude Code ignores them. */
+const LISTING = {
+    icon: './.claude-plugin/icon.png',
+    documentationUrl: `${HOMEPAGE}/docs`,
+    supportUrl: `${HOMEPAGE}/docs/troubleshooting`,
+    privacyPolicyUrl: `${HOMEPAGE}/privacy`,
+    termsOfServiceUrl: `${HOMEPAGE}/terms`,
+};
+
 /** What the setup itself has nothing for. The `version` is package.json's, added by `buildShowcase`. */
 const OPTIONS = {
     manifest: {
@@ -115,12 +126,24 @@ export function dropUnscopedBash(setup) {
     };
 }
 
+const MANIFEST_PATH = '.claude-plugin/plugin.json';
+
+/**
+ * Adds to the generator's manifest what its options have nothing for: `displayName` after `name`
+ * and the directory's listing fields at the end.
+ */
+export function completeManifest(text) {
+    const { name, ...rest } = JSON.parse(text);
+    return `${JSON.stringify({ name, displayName: DISPLAY_NAME, ...rest, ...LISTING }, null, 2)}\n`;
+}
+
 /**
  * Builds the showcase from the setup under `root`: a map from a path relative to `root` to the
  * bytes of the file, the package under `plugins/claude-code/` and the marketplace manifest. Holds
  * what the generator returned, given the setup with Athenode's MCP server pinned to the generator's
  * version and without the unscoped `Bash` in the skills' `allowed-tools`, and package.json's
- * `version`, plus the README from `docs/plugin-readme.md` and the icon from `assets/icon.png`. Throws when
+ * `version`, with the manifest completed (`completeManifest`), plus the README from
+ * `docs/plugin-readme.md` and the icon from `assets/icon.png`. Throws when
  * the generator left something of the setup out or had something to say about it: the showcase is
  * the whole setup or nothing.
  */
@@ -150,7 +173,8 @@ export function buildShowcase(root, generator) {
     }
     const files = new Map();
     for (const file of result.files) {
-        files.set(`${PLUGIN_DIR}/${file.path}`, Buffer.from(file.content));
+        const content = file.path === MANIFEST_PATH ? completeManifest(Buffer.from(file.content).toString('utf8')) : file.content;
+        files.set(`${PLUGIN_DIR}/${file.path}`, Buffer.from(content));
     }
     files.set(`${PLUGIN_DIR}/README.md`, readFileSync(join(root, README_SOURCE)));
     files.set(`${PLUGIN_DIR}/.claude-plugin/icon.png`, readFileSync(join(root, ICON_SOURCE)));

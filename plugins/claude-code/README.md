@@ -50,13 +50,6 @@ The skills pre-approve no shell commands: Claude Code asks before each one they 
 - **The setup library.** `/atn:manage` can browse agent setups that other Athenode projects published, and add or merge one into your project, only when you ask for it. Publishing a setup of yours to the library, which makes it public, is done only after you confirm it.
 - **Nothing else.** No hooks, no telemetry, no other network calls. The plugin does not change Claude Code's permission settings.
 
-## Privacy and support
-
-- Privacy policy: [athenode.com/privacy](https://athenode.com/privacy)
-- Terms: [athenode.com/terms](https://athenode.com/terms)
-- Documentation and troubleshooting: [athenode.com/docs](https://athenode.com/docs)
-- Support and security reports: [support@athenode.com](mailto:support@athenode.com)
-
 ## License
 
 Apache-2.0. The source of the setup is [Athenode-SDD/athenode-setup](https://github.com/Athenode-SDD/athenode-setup).
