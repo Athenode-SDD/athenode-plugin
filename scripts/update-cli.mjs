@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Raises the pin of @athenode/cli (devDependencies) to its latest version on npm, raises the
 // plugin's version and rebuilds the plugin with the new generator. Run by the pre-commit hook
-// (.githooks/pre-commit) and by `npm run update-cli`. See README.md, "Claude Code plugin".
+// (.githooks/pre-commit) and by `npm run update-cli`.
 //
 //   node scripts/update-cli.mjs           raise the pin when npm has a newer version
 //   node scripts/update-cli.mjs --stage   and `git add` the files it changed (the hook)

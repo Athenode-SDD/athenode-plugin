@@ -184,8 +184,6 @@ The build fails when the generator cannot package the setup as it is, for exampl
 
 **The generator's version is pinned** in `package.json`: `@athenode/cli` in `devDependencies`, an exact version, installed by `npm ci`. A generator of any other version is refused.
 
-The pin follows the CLI's releases by itself. `npm ci` (its `prepare` script) points git at `.githooks/`, whose `pre-commit` hook runs `scripts/update-cli.mjs` before each commit: when npm has a newer `@athenode/cli`, it installs it as the new pin, raises the patch of the plugin's `version`, rebuilds the plugin and stages `package.json`, `package-lock.json` and the plugin into the commit. Without an answer from npm it changes nothing and lets the commit through. To raise the pin outside a commit, run `npm run update-cli`; to commit without the hook, set `ATHENODE_SKIP_CLI_UPDATE=1`.
-
 `scripts/plugin-setup.mjs` reads the setup for the generator. It is the twin of `loadSetup` in Athenode's `backend-java/scripts/default-setup/generate.mjs`, which turns the same files into the setup a project gets; a change to how a file is read belongs in both.
 
 Check a change before you open a pull request:
