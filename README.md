@@ -51,33 +51,41 @@ You need a free [Athenode account](https://platform.athenode.com), Node.js 22.12
    ```
 
 3. Enter the token, choose your AI tools and confirm the plan that `init` shows.
-4. Restart your AI tool so that it loads the skills, the agents and the Athenode MCP server.
+4. Do what `init` prints under "Still to do in your tools", such as trusting the project folder or restarting a running session, so that each tool loads the skills, the agents and the Athenode MCP server.
 
 The [Quickstart](https://athenode.com/docs/getting-started) goes through each step, and [Install a setup](https://athenode.com/docs/agent-setups/install) describes everything `init` does.
 
+`init` gives each tool the setup in the form that tool reads: a plugin where the tool takes one, and files elsewhere. For Claude Code the skills, the agents and the Athenode MCP server are also published as the plugin `atn` in this repository's marketplace. The project still needs `init` once, because the plugin carries no rules and no settings files. When the plugin is enabled for the project, `init` asks whether to keep it and write the rules only, or to replace it with its own install. To install the plugin, run in Claude Code:
+
+```text
+/plugin install atn --marketplace Athenode-SDD/athenode-setup
+```
+
+On Claude Code before 2.1.275, add the marketplace first with `/plugin marketplace add Athenode-SDD/athenode-setup`, then run `/plugin install atn@athenode`. [The plugin's README](plugins/claude-code/README.md) describes what it runs.
+
 ## Use the skills
 
-A skill is a reusable set of instructions that your AI tool runs as a command, such as `/atn-mindmap`. The skills below are written in their slash form. The way to run a skill differs by AI tool, and `init` prints the form for each tool you selected.
+A skill is a reusable set of instructions that your AI tool runs as a command, such as `/atn:mindmap`. The skills below are written as the commands of the plugin `atn`, which is what you type in a tool that received the setup as a plugin and puts the plugin's name in front of a skill, such as Claude Code. Installed as files, the same skill is `/atn-mindmap`, and some tools have you name the skill to the agent. [Supported AI tools](https://athenode.com/docs/supported-ai-tools) gives the form for each tool, and `init` prints how to run the settings skill in each tool you selected.
 
 You run the skills in your AI tool, in this order: settings once for the project, then a mind map for each piece of work, a decomposition when the work is large, and an apply run to have it built.
 
-### 1. Choose how your project works with `/atn-settings`
+### 1. Choose how your project works with `/atn:settings`
 
-You run `/atn-settings` once, before the first piece of work. The skill looks at your repository and asks how agents should work in it: how thoroughly they test, whether tests come before the code (TDD) or after it, when the code is reviewed and what the review checks, and what they do with git, from branches and commits to an open pull request. Every later step follows your answers. You run the skill again whenever you want to change them, and you can add rules of your own on top.
+You run `/atn:settings` once, before the first piece of work. The skill looks at your repository and asks how agents should work in it: how thoroughly they test, whether tests come before the code (TDD) or after it, when the code is reviewed and what the review checks, and what they do with git, from branches and commits to an open pull request. Every later step follows your answers. You run the skill again whenever you want to change them, and you can add rules of your own on top.
 
-### 2. Think the work through with `/atn-mindmap`
+### 2. Think the work through with `/atn:mindmap`
 
 You start a mind map with what you want to build, in a sentence. A mind map is a session in which your AI agent asks rounds of questions and turns your answers into a spec, one described piece of work. Before the first question the agent looks at your codebase and at the specs you already have, so the questions are about the decisions you have not made. After each round you choose the next topic, and you decide when the mind map is finished.
 
 The result is a spec with the status Prepared, which means ready to be decomposed or implemented. You read it in the web app, with the questions and answers behind it. A small change needs only this step before you apply it.
 
-### 3. Break large work into stages with `/atn-decompose`
+### 3. Break large work into stages with `/atn:decompose`
 
 You decompose a spec when it is too big for an agent to finish in one go. To decompose a spec is to break it down into one level of stages, each a spec of its own. The skill asks the questions each stage raises, writes each stage from your answers and links the stages with blockers. A blocker is a dependency between two specs: a spec that is blocked by another is implemented after it.
 
 You decompose a stage again wherever it is too big, so the spec tree grows as deep as the work needs. A leaf spec, a spec with nothing below it, is what your agent implements.
 
-### 4. Have it built with `/atn-apply`
+### 4. Have it built with `/atn:apply`
 
 You apply a spec when it is thought through. Your AI agent goes through the leaf specs under it in the order their blockers allow. For each leaf it records an implementation plan and writes the code, then tests, reviews and commits the way you chose in the settings.
 
@@ -85,13 +93,13 @@ An apply run goes on by itself and stops only when something falls outside the s
 
 ### 5. Keep what turns up as ToDo cards
 
-A ToDo card is a short note of work to do later: a follow-up, tech debt, a bug or an idea. At the end of an apply run you choose which of your agent's findings become cards, and `/atn-todo-enqueue` adds a card of your own at any moment of a session.
+A ToDo card is a short note of work to do later: a follow-up, tech debt, a bug or an idea. At the end of an apply run you choose which of your agent's findings become cards, and `/atn:todo-enqueue` adds a card of your own at any moment of a session.
 
-`/atn-todo-dequeue` works through the open cards one by one. A card that needs thinking through becomes a spec through a mind map, and a card that needs no answer from you is carried out directly by an agent.
+`/atn:todo-dequeue` works through the open cards one by one. A card that needs thinking through becomes a spec through a mind map, and a card that needs no answer from you is carried out directly by an agent.
 
-### 6. Change the setup with `/atn-manage`
+### 6. Change the setup with `/atn:manage`
 
-`/atn-manage` takes no part in building a spec. You use it when you want to change what your agents work with: you describe the change, and the skill lists, creates, changes or deletes setups and their skills, agents, rules, MCP servers and files, and works with the setup library.
+`/atn:manage` takes no part in building a spec. You use it when you want to change what your agents work with: you describe the change, and the skill lists, creates, changes or deletes setups and their skills, agents, rules, MCP servers and files, and works with the setup library.
 
 ### Where to read more
 
@@ -100,7 +108,7 @@ While a skill runs, it hands work to the 10 agents of the setup, such as a plann
 | Topic | Documentation |
 |---|---|
 | The workflow as a whole | [The Athenode workflow](https://athenode.com/docs/workflow) |
-| Each skill | [`/atn-settings`](https://athenode.com/docs/workflow/atn-settings), [`/atn-mindmap`](https://athenode.com/docs/workflow/atn-mindmap), [`/atn-decompose`](https://athenode.com/docs/workflow/atn-decompose), [`/atn-apply`](https://athenode.com/docs/workflow/atn-apply), [`/atn-todo-enqueue`](https://athenode.com/docs/todo-cards/atn-todo-enqueue), [`/atn-todo-dequeue`](https://athenode.com/docs/todo-cards/atn-todo-dequeue), [`/atn-manage`](https://athenode.com/docs/agent-setups/atn-manage) |
+| Each skill | [`/atn:settings`](https://athenode.com/docs/workflow/atn-settings), [`/atn:mindmap`](https://athenode.com/docs/workflow/atn-mindmap), [`/atn:decompose`](https://athenode.com/docs/workflow/atn-decompose), [`/atn:apply`](https://athenode.com/docs/workflow/atn-apply), [`/atn:todo-enqueue`](https://athenode.com/docs/todo-cards/atn-todo-enqueue), [`/atn:todo-dequeue`](https://athenode.com/docs/todo-cards/atn-todo-dequeue), [`/atn:manage`](https://athenode.com/docs/agent-setups/atn-manage) |
 | Skills, agents and settings files of this setup | [Standard Athenode setup](https://athenode.com/docs/agent-setups/standard-setup) |
 | How to run a skill in each AI tool | [Supported AI tools](https://athenode.com/docs/supported-ai-tools) |
 | Specs, statuses and search | [Specifications](https://athenode.com/docs/specifications), [Search by meaning](https://athenode.com/docs/specifications/search) |
@@ -108,7 +116,7 @@ While a skill runs, it hands work to the 10 agents of the setup, such as a plann
 
 ## Make the setup your own
 
-Your project's copy of the standard setup is yours to edit: change a skill, add an agent, write rules of your own or add an MCP server, in the web app or with `/atn-manage`. For a different job, such as a security review of your application, you install a different setup. The [setup library](https://athenode.com/library) is the shared catalogue of agent setups that projects have published, and anyone can browse it.
+Your project's copy of the standard setup is yours to edit: change a skill, add an agent, write rules of your own or add an MCP server, in the web app or with `/atn:manage`. For a different job, such as a security review of your application, you install a different setup. The [setup library](https://athenode.com/library) is the shared catalogue of agent setups that projects have published, and anyone can browse it.
 
 When Athenode changes the standard setup, it updates your project's copy part by part.
 

@@ -24,7 +24,7 @@ Manage the project's agent setups and everything inside one of them — its file
 - A change to a setup that is not installed is stored on the server only: no local file is regenerated and the result has no `install` and `regeneration` parts. It reaches a project when that setup is installed there, or on the next `npx @athenode/cli init` where it already is.
 - The setup library tools (`library_*`) name their setup with `setup` — its exact name, or its id together with `setupById` — and never with `setupId`. `setup` is always required and the installed setup is never assumed: take the name from `setups_list`, and ask when the request does not say which setup is meant. A library entry is its exact name, or its id together with `byId`.
 - The pull tools (`setups_pull_preview`, `setups_pull`) name the setup that receives the content with `setup` in the same way, and the setup the content is taken from with `source` — its exact name, or its id together with `sourceById`. Both are always required and both are setups of this project.
-- Installing a different setup is done by the user in a terminal, never by you: `npx @athenode/cli init --setup <id or slug>` in the project root, followed by a restart of the session.
+- Installing a different setup is done by the user in a terminal, never by you: `npx @athenode/cli init --setup <id or slug>` in the project root. `init` then prints, under "Still to do in your tools", what each of the user's AI tools needs before it uses the setup; that step differs by tool, so point the user at those lines and name no step of your own.
 - Everything is stored on the Athenode server. Never create or edit the generated files in the local repository (skill, agent, rules and MCP config files): the write tools regenerate them, and a manual edit is overwritten by the next regeneration. Read local files only to take content the user wants to store in the setup.
 
 ## Flow
@@ -37,7 +37,7 @@ Manage the project's agent setups and everything inside one of them — its file
    - **Public display** (`publicDisplay: true` on `library_edit`, for an entry whose public display was turned off): ask a question about the open web, and only when the user asked for public display. Say that the entry's name, description and tags and the full content of its agents, skills with their bundle files, rules and setup files become visible to anyone on the open web without an account and may be indexed by search engines, that MCP server configuration is not shown, and that after it is turned off the entry can stay on the public site for up to a day and longer in search engines' caches. Pass `publicDisplay: true` with `confirmPublic: true` only after a yes to that question. `publicDisplay: false` needs no question.
    - **Replacements**: a `library_merge`, `library_update` or `setups_pull` whose `decisions` replace any item or the rules. List exactly which skills, agents, MCP servers, files and rules will be replaced, and say that there is no undo and no backup. A merge, update or pull without `decisions` adds what is new, replaces nothing and needs no question.
 4. **Apply the operations** one call at a time, in the order the user gave. If a call fails, stop the remaining operations that depend on it, keep going with the independent ones and report the error text.
-5. **Check the result.** After a write to the installed setup, which regenerates it, read the `regeneration` and `install` parts of the result: report `missingEnvVars`, and when the tool returned an error although the change was saved, say that the server holds the change and the local files are stale until `npx @athenode/cli init` is re-run.
+5. **Check the result.** After a write to the installed setup, which regenerates it, read the `regeneration` and `install` parts of the result: report `missingEnvVars`, and when the tool returned an error although the change was saved, say that the server holds the change and the local files are stale until `npx @athenode/cli init` is re-run. What brings the change into use differs by AI tool and by whether the tool has the setup as a plugin or as files, so take it from the result and never from memory: pass on the "Still to do in your tools" lines of `regeneration.text` and the `regeneration.reloadHint` as they are, for the tools they name. Only a "to use the … plugin" line, a "Restart the tool or reload its window" line and a `reloadHint` say how a change comes into use; a line about trusting the project folder or approving the MCP servers does not. For every tool of the install that the result names no such step for, and so for every tool when the result has no lines at all, say that the tool reads the change at its next start at the latest: a running session is restarted.
 6. Give the report (see "## Report").
 
 ## Operations
@@ -90,7 +90,7 @@ Content is passed inline and limited to 50000 characters per file; split a longe
 - `name` is lowercase words joined with `-`. `description` is one sentence starting with "Use when", since the coding assistant decides from it when to load the skill or delegate to the agent.
 - Write a skill's `prompt` as: a first line stating its purpose, then `## Arguments` (if it takes any), `## Flow` with numbered steps, and `## Report`. Write an agent's `prompt` as a role statement, the steps it follows and the format of what it returns.
 - `metadata` keys are either common fields or `<target>.<field>` for one coding assistant (`claudecode.allowed-tools`, `claudecode.argument-hint`, `claudecode.model` and the like). Set only what the user asked for or the skill needs; tool names differ per target, so never copy one target's tool list to another.
-- A skill or agent created or renamed in the installed setup becomes available to the coding assistant only after the session is restarted. Say so.
+- A skill or agent created or renamed in the installed setup is not available to the coding assistant at once: what brings it into use is the step of step 5 of "## Flow". Say so.
 
 ### MCP servers of a setup
 
@@ -102,7 +102,7 @@ Content is passed inline and limited to 50000 characters per file; split a longe
 | Remove | `mcp_servers_remove` (`identifier`) | For the installed setup, also removes its entries from the local MCP config files. |
 
 - Secrets never go into a server definition: the setup is shared with everyone who installs it. Write tokens and keys as `${VAR}` references in `env`, `headers`, `args` or `url`, and tell the user which variables to export. If the user pastes a literal secret, replace it with a `${VAR}` reference and say so. Publishing is stricter: `library_publish` is refused while any MCP server of the setup holds a literal `env` or `headers` value, whatever its name; replace each one with a `${VAR}` reference and publish again.
-- A server created or changed in the installed setup connects only after the session is restarted.
+- A server created or changed in the installed setup connects only after the step of step 5 of "## Flow".
 
 ### Rules of a setup
 
@@ -151,5 +151,5 @@ Without a user to ask, perform no destructive operation, no publishing and no me
 
 - Every operation performed, with the object's name (and id for setups) and what changed; listings as a compact table. Name the setup whenever it is not the installed one.
 - Every operation skipped, declined or failed, with the reason or the error text.
-- What the user has to do next: restart the session for new or renamed skills, agents and MCP servers of the installed setup; export the environment variables a server references; run `npx @athenode/cli init --setup <id or slug>` to install a new setup — one created here or added from the library — or one changed here that is not installed.
+- What the user has to do next: the step of step 5 of "## Flow", per tool, for new or renamed skills, agents and MCP servers of the installed setup; export the environment variables a server references; run `npx @athenode/cli init --setup <id or slug>` to install a new setup — one created here or added from the library — or one changed here that is not installed.
 - After a publish, the entry's name and version; after a merge or update, what was added and what was replaced.
