@@ -2,9 +2,9 @@
 // Builds the Claude Code plugin (plugins/claude-code/) and the marketplace manifest
 // (.claude-plugin/marketplace.json) from the setup in this repository, with the plugin generator of
 // @athenode/cli. This script reads the setup (plugin-setup.mjs), pins Athenode's MCP server to the
-// generator's version, drops the unscoped Bash from the skills' allowed-tools, hands it to the
-// generator and writes what comes back with the plugin's README and icon: the names, the
-// frontmatter and the layout are the generator's.
+// generator's version, drops the unscoped Bash from the skills' allowed-tools, marks the skills as
+// internal for the `skills` CLI, hands it to the generator and writes what comes back with the
+// plugin's README and icon: the names, the frontmatter and the layout are the generator's.
 // See README.md, "Claude Code plugin".
 //
 //   node scripts/build-plugin.mjs           write the plugin
@@ -126,6 +126,23 @@ export function dropUnscopedBash(setup) {
     };
 }
 
+/**
+ * Marks each skill of the plugin as internal (`metadata.internal: true`) for the `skills` CLI
+ * (`npx skills add`, the source of the skills.sh directory): it finds the plugin's skills through
+ * the marketplace manifest, beside the same skills in `skills/`, and would list each one twice.
+ * Claude Code ignores the field.
+ */
+export function hideFromSkillsCli(setup) {
+    return {
+        ...setup,
+        skills: setup.skills.map((skill) => {
+            const block = skill.metadata.claudecode ?? {};
+            const claudecode = { ...block, metadata: { ...block.metadata, internal: true } };
+            return { ...skill, metadata: { ...skill.metadata, claudecode } };
+        }),
+    };
+}
+
 const MANIFEST_PATH = '.claude-plugin/plugin.json';
 
 /**
@@ -141,7 +158,8 @@ export function completeManifest(text) {
  * Builds the showcase from the setup under `root`: a map from a path relative to `root` to the
  * bytes of the file, the package under `plugins/claude-code/` and the marketplace manifest. Holds
  * what the generator returned, given the setup with Athenode's MCP server pinned to the generator's
- * version and without the unscoped `Bash` in the skills' `allowed-tools`, and package.json's
+ * version, without the unscoped `Bash` in the skills' `allowed-tools` and with the skills marked as
+ * internal for the `skills` CLI, and package.json's
  * `version`, with the manifest completed (`completeManifest`), plus the README from
  * `docs/plugin-readme.md` and the icon from `assets/icon.png`. Throws when
  * the generator left something of the setup out or had something to say about it: the showcase is
@@ -158,7 +176,7 @@ export function buildShowcase(root, generator) {
     if (!existsSync(join(root, ICON_SOURCE))) {
         throw new Error(`${ICON_SOURCE} is missing: it is the plugin's icon`);
     }
-    const setup = dropUnscopedBash(pinAthenodeServer(loadPluginSetup(root), generator.version));
+    const setup = hideFromSkillsCli(dropUnscopedBash(pinAthenodeServer(loadPluginSetup(root), generator.version)));
     const result = generator.module.buildPluginPackage(setup, TOOL, { ...OPTIONS, version });
     const problems = [
         ...result.notices.map((notice) => `${notice.code}: ${notice.message}`),

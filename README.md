@@ -139,6 +139,7 @@ The files are in Athenode's source format, which the Athenode CLI turns into the
 | `mcp.json` | The setup's MCP server, `athenode`. |
 | `docs/targets.md` | The per-tool metadata: tool names and the reason behind each block. |
 | `plugins/claude-code/` | The setup as a Claude Code plugin, built from the skills, the agents and `mcp.json` by the generator of `@athenode/cli`. |
+| `skills.sh.json` | How the repository's page on skills.sh shows the skills. |
 
 A skill or agent file is YAML frontmatter followed by the prompt. The frontmatter holds `name`, equal to the file or directory name, and `description`, then one block per AI tool with the fields only that tool reads. A settings file has one frontmatter key, `summary`. The blank line after a frontmatter block is not part of the text.
 
@@ -181,6 +182,7 @@ What the build adds for [Anthropic's plugin directory](https://claude.com/docs/p
 - **Listing fields.** The manifest gets `displayName` (`Athenode`; the commands keep the `atn:` prefix of `name`) and the fields Anthropic's directory shows on the plugin's page: `icon`, `documentationUrl`, `supportUrl`, `privacyPolicyUrl` and `termsOfServiceUrl`.
 - **Icon.** `plugins/claude-code/.claude-plugin/icon.png` is a copy of `assets/icon.png`, a square PNG of 512 to 2048 px.
 - **No unscoped `Bash`.** Each skill's `allowed-tools` loses the plain `Bash`, which pre-approves any shell command and holds the plugin for review: in the plugin, Claude Code asks before each shell command. The setup itself, installed by the CLI, keeps it.
+- **Internal for the `skills` CLI.** Each skill gets `metadata.internal: true`, so that `npx skills add` lists the skills of `skills/` only (see "skills.sh" below). Claude Code ignores the field.
 - **Pinned MCP server.** In the plugin, Athenode's MCP server runs `@athenode/cli` at the generator's version (the pin below), not `@latest` as in `mcp.json`: the directory refuses a launcher without an exact version. Raising the pin moves both.
 
 The build fails when the generator cannot package the setup as it is, for example two skills that get one name once the prefix is dropped (`atn-review` beside `review`) or an MCP server whose command holds a `${VAR}`. A skill without the `atn-` prefix is not an error by itself: it keeps its name, as `/atn:review`.
@@ -204,6 +206,20 @@ npm test
 ### Smithery
 
 The plugin's skills are listed on [Smithery](https://smithery.ai/skills/athenode/atn-mindmap) as `athenode/atn-<name>`. Each skill points at its directory in `plugins/claude-code/skills/` on `main`. The `Smithery skills` workflow (`.github/workflows/smithery-skills.yml`) runs on each push to `main` that changes those directories, and you can also start it by hand. It creates the new skills and refreshes the others. It needs the repository secret `SMITHERY_API_KEY`, a key of the owner of the Smithery namespace `athenode`. The workflow does not remove a skill that was taken out of the plugin: delete that skill on Smithery yourself.
+
+### skills.sh
+
+[skills.sh](https://skills.sh) has no submission step: it lists a skill once someone installs it with the `skills` CLI, which finds the skills of this repository in `skills/`:
+
+```bash
+npx skills add Athenode-SDD/athenode-setup
+```
+
+That installs the skill files only, without the agents, the rules, the settings files and the Athenode MCP server the skills call. A skill installed this way works in a project where `npx @athenode/cli init` has run; "Install" above is the way to get the whole setup.
+
+`skills.sh.json` sets how the repository's page on skills.sh shows the skills: one group with a title and a description, which holds every skill in the order of the workflow. `npm test` fails when a skill of `skills/` is missing from it. skills.sh reads the file from `main` when someone installs a skill, and caches the page, so a change shows up after the next install.
+
+The `skills` CLI also reads `.claude-plugin/marketplace.json`, so it would list each skill a second time from the plugin, without the `atn-` prefix. The build marks the plugin's skills as internal to keep one entry per skill.
 
 ## Licence
 

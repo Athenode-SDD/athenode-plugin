@@ -5,6 +5,8 @@ description: >-
   reviewed and committed leaf by leaf.
 allowed-tools: 'Agent, SendMessage, AskUserQuestion, Skill'
 argument-hint: '[spec_id_or_name]'
+metadata:
+  internal: true
 ---
 Drive a specification subtree from prepared to completed: plan, implement and review its leaves one at a time in dependency order, complete the intermediate specifications as their subtrees finish, and finally complete the root, running the project's git workflow and code review at the hooks named below.
 

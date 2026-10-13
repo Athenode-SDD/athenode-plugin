@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { after, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { buildShowcase, checkShowcase, dropUnscopedBash, main, pinAthenodeServer, resolveGenerator } from './build-plugin.mjs';
+import { buildShowcase, checkShowcase, dropUnscopedBash, hideFromSkillsCli, main, pinAthenodeServer, resolveGenerator } from './build-plugin.mjs';
 import { loadPluginSetup } from './plugin-setup.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -343,6 +343,22 @@ describe('dropping the unscoped Bash', () => {
     });
 });
 
+describe('hiding the skills from the skills CLI', () => {
+    const setup = (claudecode) => ({ slug: 'atn', skills: [{ name: 's', metadata: { description: 'd', ...(claudecode && { claudecode }) }, content: 'c', files: [] }], agents: [], mcpServers: [] });
+    const hidden = (claudecode) => hideFromSkillsCli(setup(claudecode)).skills[0].metadata;
+
+    test('marks a skill as internal, with or without a claudecode block, and keeps the rest', () => {
+        assert.deepEqual(hidden(null), { description: 'd', claudecode: { metadata: { internal: true } } });
+        assert.deepEqual(hidden({ model: 'x', metadata: { author: 'a' } }).claudecode, { model: 'x', metadata: { author: 'a', internal: true } });
+    });
+
+    test('leaves the setup given', () => {
+        const given = setup({ model: 'x' });
+        hideFromSkillsCli(given);
+        assert.deepEqual(given.skills[0].metadata.claudecode, { model: 'x' });
+    });
+});
+
 describe('the build', () => {
     let generator = null;
     let skip = false;
@@ -454,6 +470,7 @@ describe('the build', () => {
         const skill = text(buildShowcase(root, generator), `${PLUGIN_DIR}/skills/one/SKILL.md`);
         const frontmatter = skill.slice(0, skill.indexOf('\n---\n'));
         assert.match(frontmatter, /argument-hint: .*\[id\]/);
+        assert.match(frontmatter, /\nmetadata:\n  internal: true$/);
         assert.doesNotMatch(frontmatter, /copilot|other/);
         assert.ok(skill.endsWith('\n---\n\nBody of one.\n') || skill.endsWith('\n---\nBody of one.\n'));
     });

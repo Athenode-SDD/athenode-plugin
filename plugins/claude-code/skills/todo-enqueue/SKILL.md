@@ -7,6 +7,8 @@ allowed-tools: AskUserQuestion
 argument-hint: >-
   [<text>] [--type <type>] [--priority <priority>] [--origin <spec_id>]
   [--no-questions]
+metadata:
+  internal: true
 ---
 Add one card to the project's ToDo without leaving the session: collect the card's text, type, priority and open questions, asking the user only for what the invocation did not supply, and record the card. One run creates one card.
 

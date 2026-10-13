@@ -7,6 +7,8 @@ description: >-
   setup library.
 allowed-tools: 'AskUserQuestion, Read, Glob, Grep'
 argument-hint: '[request]'
+metadata:
+  internal: true
 ---
 Manage the project's agent setups and everything inside one of them — its files, skills, agents, MCP servers and rules; the installed setup unless the request names another — by listing, creating, changing and deleting them on the Athenode server. It also works with the setup library: browsing its entries, adding one as a new setup, merging one into a setup, updating a setup added from the library, and publishing, re-publishing, editing and unpublishing the project's own entries, including whether an entry is shown on the public website.
 
