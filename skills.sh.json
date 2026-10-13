@@ -2,7 +2,7 @@
   "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
   "groupings": [
     {
-      "title": "Spec-driven development",
+      "title": "Athenode spec-driven development",
       "description": "Think your product through before your AI coding agent writes code: grow a tree of specs through guided questions, break large work into stages, and have each spec planned, built, reviewed and committed. Run npx @athenode/cli init in your project first.",
       "skills": [
         "atn-settings",
