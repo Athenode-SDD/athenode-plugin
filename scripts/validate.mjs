@@ -126,6 +126,18 @@ try {
 } catch (e) {
     error('mcp.json', e.message);
 }
+// The skills.sh repository page (see README.md, "skills.sh"): one group that holds every skill.
+try {
+    const { groupings } = JSON.parse(read('skills.sh.json'));
+    const [group] = Array.isArray(groupings) ? groupings : [];
+    if (groupings?.length !== 1 || typeof group.title !== 'string' || !group.title.trim() || typeof group.description !== 'string' || !group.description.trim()) {
+        error('skills.sh.json', 'must hold exactly one group with a title and a description');
+    } else if (!Array.isArray(group.skills) || [...group.skills].sort().join() !== list('skills').join()) {
+        error('skills.sh.json', `the group must list every skill of skills/ once: ${list('skills').join(', ')}`);
+    }
+} catch (e) {
+    error('skills.sh.json', e.message);
+}
 
 if (errors.length) {
     console.error(errors.join('\n'));

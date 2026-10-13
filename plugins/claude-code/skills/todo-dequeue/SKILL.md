@@ -6,6 +6,8 @@ description: >-
   and delivered.
 allowed-tools: 'Agent, SendMessage, AskUserQuestion, Skill'
 argument-hint: '[card_id...] [--type <type>] [--priority <priority>] [--auto]'
+metadata:
+  internal: true
 ---
 Work through the project's open ToDo cards one by one: for each card the user chooses between a specification (the mind map), direct execution without a specification, skipping, dismissing and stopping; a card carried out directly is implemented, reviewed, committed, closed and delivered. With `--auto` the questions are asked once at the start of the run, and every card that needs no answer from the user is then carried out directly.
 

@@ -5,6 +5,8 @@ description: >-
   methodology) need to be chosen or changed.
 allowed-tools: 'AskUserQuestion, Read, Glob, Grep'
 argument-hint: '[category...]'
+metadata:
+  internal: true
 ---
 Configure the project's workflow settings (testing, methodology, code review and gitflow, per project) that every other Athenode agent and skill loads, by inspecting the local project read-only, asking category by category and saving the chosen values to the `settings/` files of the project's setup copy.
 
