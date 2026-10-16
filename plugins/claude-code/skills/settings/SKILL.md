@@ -8,7 +8,7 @@ argument-hint: '[category...]'
 metadata:
   internal: true
 ---
-Configure the project's workflow settings (testing, methodology, code review and gitflow, per project) that every other Athenode agent and skill loads, by inspecting the local project read-only, asking category by category and saving the chosen values to the `settings/` files of the project's setup copy.
+Configure the project's workflow settings (testing, methodology, code review and gitflow, per project) that every other Athenode agent and skill loads, by inspecting the local project read-only, asking category by category and saving the chosen values to the `settings/` files of the project's plugin copy.
 
 ## Arguments
 
@@ -29,11 +29,11 @@ Every category file (`gitflow.md`, `testing.md`, `code-review.md`, `methodology.
 
 ## Flow
 
-The settings live only in the project's setup copy on the Athenode server: read and write them with `setups_files_get`, `setups_files_list`, `setups_files_create`, `setups_files_update` and `setups_files_delete`, and never create or modify a file in the local repository. Keys and values (such as `review_mode` or `per_leaf`) appear only in the files you write: everything the user sees describes settings and values in plain language, using the questions and descriptions of step 5c. Free-form values that are the user's own data (a branch name, a tag prefix, a template, a number of attempts) are shown as they are. Refer to projects by their repository path, and to the root as "the root (files outside every sub-project)".
+The settings live only in the project's plugin copy on the Athenode server, as plugin files: read and write them with `plugins_files_get`, `plugins_files_list`, `plugins_files_create`, `plugins_files_update` and `plugins_files_delete`, and never create or modify a file in the local repository. Keys and values (such as `review_mode` or `per_leaf`) appear only in the files you write: everything the user sees describes settings and values in plain language, using the questions and descriptions of step 5c. Free-form values that are the user's own data (a branch name, a tag prefix, a template, a number of attempts) are shown as they are. Refer to projects by their repository path, and to the root as "the root (files outside every sub-project)".
 
-1. **Load the current settings** with `setups_files_get`: `settings/SETTINGS.md`, `settings/gitflow.md`, `settings/testing.md`, `settings/code-review.md` and `settings/methodology.md`. List `settings` with `setups_files_list` to find the sub-project folders, then list and load each folder's files the same way.
-   - If a call fails with a 403 or a "not a project copy" error, tell the user to re-run `athenode init` (the CLI command, in a terminal) so this project installs its own setup copy, and stop.
-   - If a root category file is missing, tell the user the setup copy is incomplete (the settings seed has not been applied to it) and stop.
+1. **Load the current settings** with `plugins_files_get`: `settings/SETTINGS.md`, `settings/gitflow.md`, `settings/testing.md`, `settings/code-review.md` and `settings/methodology.md`. List `settings` with `plugins_files_list` to find the sub-project folders, then list and load each folder's files the same way.
+   - If a call fails with a 403 or a "not a project copy" error, tell the user to re-run `athenode init` (the CLI command, in a terminal) so this project installs its own plugin copy, and stop.
+   - If a root category file is missing, tell the user the plugin copy is incomplete (the settings seed has not been applied to it) and stop.
    - Otherwise parse each file's `## Parameters` lines and the `initialized` flag, and keep every file's full content in memory.
 2. **Inspect the project (read-only)** with Read, Glob, Grep and Bash to ground your recommendations; never modify anything. Look for:
    - test frameworks and existing tests: `package.json` scripts and dev dependencies, `pom.xml`/`build.gradle*`, `pytest.ini`/`pyproject.toml`, `vitest`/`jest` configs, test directories and `*.test.*`/`*.spec.*`/`*Test.java` files;
@@ -94,7 +94,7 @@ The settings live only in the project's setup copy on the Athenode server: read 
       5. A subsection with no matching row gets the single bullet `- No action.`.
       Per-sub-project `gitflow.md` files use the same format and assembly as the root file.
    b. **Pass content inline**, as the tool's `content` parameter.
-   c. **Write each file**: `setups_files_update` with `path` `settings/<file>` for existing files, `setups_files_create` with `path` `settings/<folder>/<file>` for new sub-project files (it creates the folder; on a 409 use `setups_files_update` instead). For each removed sub-project, call `setups_files_delete` with `path` `settings/<folder>` and `recursive` `true`.
+   c. **Write each file**: `plugins_files_update` with `path` `settings/<file>` for existing files, `plugins_files_create` with `path` `settings/<folder>/<file>` for new sub-project files (it creates the folder; on a 409 use `plugins_files_update` instead). For each removed sub-project, call `plugins_files_delete` with `path` `settings/<folder>` and `recursive` `true`.
    d. **Verify each write.** If a call didn't succeed, fix it and write the file again before moving on.
    e. **Update `SETTINGS.md` last**, after every other write succeeded: its `## Sub-projects` table lists exactly the confirmed sub-projects, one row each as `| <repository path> | settings/<folder>/ |`, keeping the header rows `| repository path | settings folder |` and `|---|---|`, the paragraph above them and the category file links, and `- initialized: true` goes under `## Parameters`. Verify it the same way.
 

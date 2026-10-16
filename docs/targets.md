@@ -42,7 +42,7 @@ Claude Code only and are never mapped.
 
 ## The athenode MCP server
 
-Every subagent reaches specifications and setup files through the tools of the `athenode` MCP
+Every subagent reaches specifications and plugin files through the tools of the `athenode` MCP
 server (see `mcp.json`).
 
 - Claude Code accepts the server-level `mcp__athenode` entry in a subagent's `tools` (all of the

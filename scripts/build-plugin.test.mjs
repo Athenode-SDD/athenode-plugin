@@ -1,4 +1,4 @@
-// Tests of the plugin build: the adapter (plugin-setup.mjs), the generator's resolver, the build
+// Tests of the plugin build: the adapter (standard-plugin.mjs), the generator's resolver, the build
 // and the drift check (build-plugin.mjs). Run with `node --test scripts/*.test.mjs`.
 //
 // The tests that build a package need the generator of @athenode/cli; where it cannot be resolved
@@ -10,7 +10,7 @@ import { dirname, join, resolve } from 'node:path';
 import { after, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { buildShowcase, checkShowcase, dropUnscopedBash, hideFromSkillsCli, main, pinAthenodeServer, resolveGenerator } from './build-plugin.mjs';
-import { loadPluginSetup } from './plugin-setup.mjs';
+import { loadStandardPlugin } from './standard-plugin.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PIN = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).devDependencies['@athenode/cli'];
@@ -25,7 +25,7 @@ after(() => {
 });
 
 function tempDir() {
-    const dir = mkdtempSync(join(tmpdir(), 'athenode-setup-test-'));
+    const dir = mkdtempSync(join(tmpdir(), 'athenode-plugin-test-'));
     temporary.push(dir);
     return dir;
 }
@@ -38,9 +38,9 @@ function write(root, path, content) {
 const document = (name, extra, body) => `---\nname: ${name}\ndescription: Use when ${name} is needed.\n${extra}---\n\n${body}`;
 const STDIO = { type: 'stdio', command: 'npx', args: ['-y', 'some-server'] };
 
-/** A setup directory: `skills` and `agents` map a name to a body, or to a whole file with `{raw}`. */
+/** A plugin directory: `skills` and `agents` map a name to a body, or to a whole file with `{raw}`. */
 function fixture({ skills = { 'atn-one': 'Body of one.\n' }, agents = { helper: 'Prompt of helper.\n' }, servers = { local: STDIO }, pin = PIN, version = '1.2.3', readme = '# Fixture\n', icon = 'PNG' } = {}) {
-    const root = join(tempDir(), 'setup');
+    const root = join(tempDir(), 'plugin');
     write(root, 'package.json', JSON.stringify({ name: 'fixture', version, devDependencies: { '@athenode/cli': pin } }));
     if (readme !== null) {
         write(root, 'docs/plugin-readme.md', readme);
@@ -77,7 +77,7 @@ describe('the adapter', () => {
                 'atn-one': { raw: '---\nname: atn-one\ndescription: Use when one.\nclaudecode:\n  argument-hint: "[id]"\n  allowed-tools: Read, Bash\ncopilot:\n  allowed-tools:\n    - execute\n---\n\nBody of one.\n' },
             },
         });
-        const [skill] = loadPluginSetup(root).skills;
+        const [skill] = loadStandardPlugin(root).skills;
         assert.equal(skill.name, 'atn-one');
         assert.deepEqual(skill.metadata, {
             description: 'Use when one.',
@@ -92,54 +92,54 @@ describe('the adapter', () => {
             skills: { 'atn-one': { raw: '---\nname: atn-one\ndescription: Use when one.\n---\n\n\nSecond line.\n' } },
             agents: { helper: { raw: '---\nname: helper\ndescription: Use when helping.\n---\nNo blank line.\n' } },
         });
-        const setup = loadPluginSetup(root);
-        assert.equal(setup.skills[0].content, '\nSecond line.\n');
-        assert.equal(setup.agents[0].content, 'No blank line.\n');
-        assert.deepEqual(setup.agents[0].metadata, { description: 'Use when helping.' });
+        const plugin = loadStandardPlugin(root);
+        assert.equal(plugin.skills[0].content, '\nSecond line.\n');
+        assert.equal(plugin.agents[0].content, 'No blank line.\n');
+        assert.deepEqual(plugin.agents[0].metadata, { description: 'Use when helping.' });
     });
 
     test('refuses a file without frontmatter', () => {
         const root = fixture({ agents: { helper: { raw: 'Just a prompt.\n' } } });
-        assert.throws(() => loadPluginSetup(root), /subagents\/helper\.md must start with a YAML frontmatter block/);
+        assert.throws(() => loadStandardPlugin(root), /subagents\/helper\.md must start with a YAML frontmatter block/);
     });
 
     test('refuses a frontmatter that is not a mapping', () => {
         const root = fixture({ agents: { helper: { raw: '---\n- a\n- b\n---\n\nPrompt.\n' } } });
-        assert.throws(() => loadPluginSetup(root), /the frontmatter must be a mapping/);
+        assert.throws(() => loadStandardPlugin(root), /the frontmatter must be a mapping/);
     });
 
     test('refuses a file without a name, and a name other than the file name', () => {
         const noName = fixture({ agents: { helper: { raw: '---\ndescription: Use when helping.\n---\n\nPrompt.\n' } } });
-        assert.throws(() => loadPluginSetup(noName), /subagents\/helper\.md: frontmatter name "undefined" must be "helper"/);
+        assert.throws(() => loadStandardPlugin(noName), /subagents\/helper\.md: frontmatter name "undefined" must be "helper"/);
         const otherName = fixture({ skills: { 'atn-one': { raw: '---\nname: atn-two\ndescription: Use when one.\n---\n\nBody.\n' } } });
-        assert.throws(() => loadPluginSetup(otherName), /SKILL\.md: frontmatter name "atn-two" must be "atn-one"/);
+        assert.throws(() => loadStandardPlugin(otherName), /SKILL\.md: frontmatter name "atn-two" must be "atn-one"/);
     });
 
     test('refuses a missing description and an empty body', () => {
         const noDescription = fixture({ agents: { helper: { raw: '---\nname: helper\n---\n\nPrompt.\n' } } });
-        assert.throws(() => loadPluginSetup(noDescription), /the frontmatter needs a description/);
+        assert.throws(() => loadStandardPlugin(noDescription), /the frontmatter needs a description/);
         const noBody = fixture({ agents: { helper: { raw: '---\nname: helper\ndescription: Use when helping.\n---\n\n' } } });
-        assert.throws(() => loadPluginSetup(noBody), /the body is empty/);
+        assert.throws(() => loadStandardPlugin(noBody), /the body is empty/);
     });
 
     test('refuses a name that is not a valid path segment', () => {
         const root = fixture({ agents: { Helper_One: 'Prompt.\n' } });
-        assert.throws(() => loadPluginSetup(root), /"Helper_One" is not a valid agent name/);
+        assert.throws(() => loadStandardPlugin(root), /"Helper_One" is not a valid agent name/);
     });
 
     test('refuses an extra file in a skill directory, so that a bundle file is never dropped silently', () => {
         const root = fixture();
         write(root, 'skills/atn-one/reference.md', 'More.\n');
-        assert.throws(() => loadPluginSetup(root), /skills\/atn-one: .*only SKILL\.md \(found reference\.md\)/);
+        assert.throws(() => loadStandardPlugin(root), /skills\/atn-one: .*only SKILL\.md \(found reference\.md\)/);
     });
 
     test('refuses a file in skills/ and a file other than <name>.md in subagents/', () => {
         const strayFile = fixture();
         write(strayFile, 'skills/notes.txt', 'x');
-        assert.throws(() => loadPluginSetup(strayFile), /skills\/notes\.txt/);
+        assert.throws(() => loadStandardPlugin(strayFile), /skills\/notes\.txt/);
         const notMarkdown = fixture();
         write(notMarkdown, 'subagents/helper.txt', 'x');
-        assert.throws(() => loadPluginSetup(notMarkdown), /subagents\/helper\.txt: only <name>\.md files belong here/);
+        assert.throws(() => loadStandardPlugin(notMarkdown), /subagents\/helper\.txt: only <name>\.md files belong here/);
     });
 
     test('maps a stdio and an http server to the shape of the export, with nulls', () => {
@@ -151,7 +151,7 @@ describe('the adapter', () => {
                 events: { type: 'sse', url: 'https://example.com/sse' },
             },
         });
-        assert.deepEqual(loadPluginSetup(root).mcpServers, [
+        assert.deepEqual(loadStandardPlugin(root).mcpServers, [
             { name: 'bare', transport: 'stdio', command: 'bare', args: [], env: null, url: null, headers: null },
             { name: 'events', transport: 'sse', command: null, args: null, env: null, url: 'https://example.com/sse', headers: null },
             { name: 'local', transport: 'stdio', command: 'node', args: ['server.js'], env: { MODE: 'x' }, url: null, headers: null },
@@ -160,11 +160,11 @@ describe('the adapter', () => {
     });
 
     test('refuses a malformed server', () => {
-        assert.throws(() => loadPluginSetup(fixture({ servers: { x: { type: 'pipe' } } })), /server "x": type must be stdio, http or sse/);
-        assert.throws(() => loadPluginSetup(fixture({ servers: { x: { type: 'stdio' } } })), /a stdio server needs a command/);
-        assert.throws(() => loadPluginSetup(fixture({ servers: { x: { type: 'http' } } })), /an http server needs a url/);
-        assert.throws(() => loadPluginSetup(fixture({ servers: { x: { type: 'stdio', command: 'a', args: [1] } } })), /args must be a list of strings/);
-        assert.throws(() => loadPluginSetup(fixture({ servers: { x: { type: 'stdio', command: 'a', env: { A: 1 } } } })), /env must map names to strings/);
+        assert.throws(() => loadStandardPlugin(fixture({ servers: { x: { type: 'pipe' } } })), /server "x": type must be stdio, http or sse/);
+        assert.throws(() => loadStandardPlugin(fixture({ servers: { x: { type: 'stdio' } } })), /a stdio server needs a command/);
+        assert.throws(() => loadStandardPlugin(fixture({ servers: { x: { type: 'http' } } })), /an http server needs a url/);
+        assert.throws(() => loadStandardPlugin(fixture({ servers: { x: { type: 'stdio', command: 'a', args: [1] } } })), /args must be a list of strings/);
+        assert.throws(() => loadStandardPlugin(fixture({ servers: { x: { type: 'stdio', command: 'a', env: { A: 1 } } } })), /env must map names to strings/);
     });
 
     test('names the plugin atn and sorts everything by name', () => {
@@ -173,23 +173,23 @@ describe('the adapter', () => {
             agents: { zeta: 'Z.\n', alpha: 'A.\n' },
             servers: { second: STDIO, first: STDIO },
         });
-        const setup = loadPluginSetup(root);
-        assert.equal(setup.slug, 'atn');
-        assert.deepEqual(setup.skills.map((s) => s.name), ['atn-one', 'atn-three', 'atn-two']);
-        assert.deepEqual(setup.agents.map((a) => a.name), ['alpha', 'zeta']);
-        assert.deepEqual(setup.mcpServers.map((s) => s.name), ['first', 'second']);
-        assert.deepEqual(loadPluginSetup(root), setup);
+        const plugin = loadStandardPlugin(root);
+        assert.equal(plugin.slug, 'atn');
+        assert.deepEqual(plugin.skills.map((s) => s.name), ['atn-one', 'atn-three', 'atn-two']);
+        assert.deepEqual(plugin.agents.map((a) => a.name), ['alpha', 'zeta']);
+        assert.deepEqual(plugin.mcpServers.map((s) => s.name), ['first', 'second']);
+        assert.deepEqual(loadStandardPlugin(root), plugin);
     });
 
     test('reads this repository: seven atn- skills, ten agents and the athenode server', () => {
-        const setup = loadPluginSetup(ROOT);
-        assert.equal(setup.slug, 'atn');
-        assert.equal(setup.skills.length, 7);
-        assert.ok(setup.skills.every((skill) => skill.name.startsWith('atn-') && skill.files.length === 0));
-        assert.equal(setup.agents.length, 10);
-        assert.deepEqual(setup.mcpServers.map((server) => server.name), ['athenode']);
-        assert.equal(setup.mcpServers[0].transport, 'stdio');
-        assert.ok(!('rules' in setup));
+        const plugin = loadStandardPlugin(ROOT);
+        assert.equal(plugin.slug, 'atn');
+        assert.equal(plugin.skills.length, 7);
+        assert.ok(plugin.skills.every((skill) => skill.name.startsWith('atn-') && skill.files.length === 0));
+        assert.equal(plugin.agents.length, 10);
+        assert.deepEqual(plugin.mcpServers.map((server) => server.name), ['athenode']);
+        assert.equal(plugin.mcpServers[0].transport, 'stdio');
+        assert.ok(!('rules' in plugin));
     });
 });
 
@@ -305,8 +305,8 @@ describe('the drift check', () => {
 });
 
 describe('pinning Athenode\'s MCP server', () => {
-    const setup = (args) => ({ slug: 'atn', skills: [], agents: [], mcpServers: [{ name: 's', transport: 'stdio', command: 'npx', args, env: null, url: null, headers: null }] });
-    const pinned = (args) => pinAthenodeServer(setup(args), '9.8.7').mcpServers[0].args;
+    const plugin = (args) => ({ slug: 'atn', skills: [], agents: [], mcpServers: [{ name: 's', transport: 'stdio', command: 'npx', args, env: null, url: null, headers: null }] });
+    const pinned = (args) => pinAthenodeServer(plugin(args), '9.8.7').mcpServers[0].args;
 
     test('replaces @latest, any other version and no version with the given one', () => {
         assert.deepEqual(pinned(['-y', '@athenode/cli@latest', 'mcp']), ['-y', '@athenode/cli@9.8.7', 'mcp']);
@@ -314,19 +314,19 @@ describe('pinning Athenode\'s MCP server', () => {
         assert.deepEqual(pinned(['@athenode/cli', 'mcp']), ['@athenode/cli@9.8.7', 'mcp']);
     });
 
-    test('leaves other packages, a remote server and the setup given alone', () => {
+    test('leaves other packages, a remote server and the plugin given alone', () => {
         assert.deepEqual(pinned(['-y', '@athenode/cli-extra@latest', 'other@latest']), ['-y', '@athenode/cli-extra@latest', 'other@latest']);
         const remote = { slug: 'atn', skills: [], agents: [], mcpServers: [{ name: 'r', transport: 'http', command: null, args: null, env: null, url: 'https://example.com', headers: null }] };
         assert.deepEqual(pinAthenodeServer(remote, '9.8.7'), remote);
-        const given = setup(['@athenode/cli@latest']);
+        const given = plugin(['@athenode/cli@latest']);
         pinAthenodeServer(given, '9.8.7');
         assert.deepEqual(given.mcpServers[0].args, ['@athenode/cli@latest']);
     });
 });
 
 describe('dropping the unscoped Bash', () => {
-    const setup = (claudecode) => ({ slug: 'atn', skills: [{ name: 's', metadata: { description: 'd', ...(claudecode && { claudecode }) }, content: 'c', files: [] }], agents: [], mcpServers: [] });
-    const narrowed = (claudecode) => dropUnscopedBash(setup(claudecode)).skills[0].metadata;
+    const plugin = (claudecode) => ({ slug: 'atn', skills: [{ name: 's', metadata: { description: 'd', ...(claudecode && { claudecode }) }, content: 'c', files: [] }], agents: [], mcpServers: [] });
+    const narrowed = (claudecode) => dropUnscopedBash(plugin(claudecode)).skills[0].metadata;
 
     test('removes Bash from a comma list and from a list, and keeps a scoped Bash and the rest', () => {
         assert.equal(narrowed({ 'allowed-tools': 'Agent, Bash, Read' }).claudecode['allowed-tools'], 'Agent, Read');
@@ -334,26 +334,26 @@ describe('dropping the unscoped Bash', () => {
         assert.deepEqual(narrowed({ 'allowed-tools': 'Read', model: 'x' }).claudecode, { 'allowed-tools': 'Read', model: 'x' });
     });
 
-    test('drops allowed-tools that held only Bash, leaves a skill without the field alone, and the setup given', () => {
+    test('drops allowed-tools that held only Bash, leaves a skill without the field alone, and the plugin given', () => {
         assert.deepEqual(narrowed({ 'allowed-tools': 'Bash', 'argument-hint': '[id]' }).claudecode, { 'argument-hint': '[id]' });
         assert.deepEqual(narrowed(null), { description: 'd' });
-        const given = setup({ 'allowed-tools': 'Bash, Read' });
+        const given = plugin({ 'allowed-tools': 'Bash, Read' });
         dropUnscopedBash(given);
         assert.equal(given.skills[0].metadata.claudecode['allowed-tools'], 'Bash, Read');
     });
 });
 
 describe('hiding the skills from the skills CLI', () => {
-    const setup = (claudecode) => ({ slug: 'atn', skills: [{ name: 's', metadata: { description: 'd', ...(claudecode && { claudecode }) }, content: 'c', files: [] }], agents: [], mcpServers: [] });
-    const hidden = (claudecode) => hideFromSkillsCli(setup(claudecode)).skills[0].metadata;
+    const plugin = (claudecode) => ({ slug: 'atn', skills: [{ name: 's', metadata: { description: 'd', ...(claudecode && { claudecode }) }, content: 'c', files: [] }], agents: [], mcpServers: [] });
+    const hidden = (claudecode) => hideFromSkillsCli(plugin(claudecode)).skills[0].metadata;
 
     test('marks a skill as internal, with or without a claudecode block, and keeps the rest', () => {
         assert.deepEqual(hidden(null), { description: 'd', claudecode: { metadata: { internal: true } } });
         assert.deepEqual(hidden({ model: 'x', metadata: { author: 'a' } }).claudecode, { model: 'x', metadata: { author: 'a', internal: true } });
     });
 
-    test('leaves the setup given', () => {
-        const given = setup({ model: 'x' });
+    test('leaves the plugin given', () => {
+        const given = plugin({ model: 'x' });
         hideFromSkillsCli(given);
         assert.deepEqual(given.skills[0].metadata.claudecode, { model: 'x' });
     });
@@ -388,7 +388,7 @@ describe('the build', () => {
         assert.match(manifest.description, /^Athenode's spec-driven development workflow/);
         assert.deepEqual(manifest.author, { name: 'Athenode', url: 'https://athenode.com' });
         assert.equal(manifest.homepage, 'https://athenode.com');
-        assert.equal(manifest.repository, 'https://github.com/Athenode-SDD/athenode-setup');
+        assert.equal(manifest.repository, 'https://github.com/Athenode-SDD/athenode-plugin');
         assert.equal(manifest.license, 'Apache-2.0');
         assert.deepEqual(manifest.keywords, ['spec-driven-development', 'specifications', 'workflow', 'athenode']);
         assert.equal(manifest.version, '1.2.3');
@@ -477,7 +477,7 @@ describe('the build', () => {
 
     test('fails when dropping the atn- prefix gives two skills one name', { skip }, () => {
         const root = fixture({ skills: { 'atn-one': 'One.\n', one: 'Plain one.\n' } });
-        assert.throws(() => buildShowcase(root, generator), /the generator did not package the setup as it is/);
+        assert.throws(() => buildShowcase(root, generator), /the generator did not package the standard plugin as it is/);
     });
 
     test('packages a server with a ${VAR} in the command, which Claude Code expands in every field', { skip }, () => {
@@ -511,6 +511,21 @@ describe('the build', () => {
         const servers = JSON.parse(readFileSync(join(ROOT, 'mcp.json'), 'utf8')).mcpServers;
         servers.athenode.args = servers.athenode.args.map((arg) => arg.replace(/^@athenode\/cli@latest$/, `@athenode/cli@${PIN}`));
         assert.deepEqual(JSON.parse(text(files, `${PLUGIN_DIR}/.mcp.json`)).mcpServers, servers);
+
+        const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+        assert.equal(pkg.name, 'athenode-plugin');
+        const manifest = JSON.parse(text(files, `${PLUGIN_DIR}/.claude-plugin/plugin.json`));
+        assert.equal(manifest.name, 'atn');
+        assert.equal(manifest.version, pkg.version);
+        assert.equal(manifest.repository, 'https://github.com/Athenode-SDD/athenode-plugin');
+    });
+
+    test('pins this repository to @athenode/cli 0.10.7 at plugin version 1.1.0 or later', () => {
+        const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+        const [major, minor] = pkg.version.split('.').map(Number);
+        assert.ok(major > 1 || (major === 1 && minor >= 1), `version ${pkg.version} must be at least 1.1.0`);
+        const [cliMajor, cliMinor, cliPatch] = PIN.split('.').map(Number);
+        assert.ok(cliMajor > 0 || cliMinor > 10 || (cliMinor === 10 && cliPatch >= 7), `@athenode/cli ${PIN} must be at least 0.10.7`);
     });
 
     test('is deterministic', { skip }, () => {

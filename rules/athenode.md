@@ -1,10 +1,10 @@
 ### MCP
 
-Specifications and this project's setup files, including its workflow settings under `settings/`, are accessed through the tools of the `athenode` MCP server. Pass large texts such as specification content, plans and settings files inline as tool parameters. If these tools are not available in the session, ask the user to run `npx @athenode/cli init` in this project and restart the session.
+Specifications and this project's plugin files, including its workflow settings under `settings/`, are accessed through the tools of the `athenode` MCP server. Pass large texts such as specification content, plans and settings files inline as tool parameters. If these tools are not available in the session, ask the user to run `npx @athenode/cli init` in this project and restart the session.
 
 ### Settings
 
-- Load settings files with the `setups_files_get` tool, starting with `settings/SETTINGS.md`, then the files and `## Rules` subsections your instructions name.
+- Load settings files with the `plugins_files_get` tool, starting with `settings/SETTINGS.md`, then the files and `## Rules` subsections your instructions name.
 - A file belongs to the sub-project whose repository path in the `settings/SETTINGS.md` table is the longest `path/` prefix of the file's path; load that sub-project's settings folder instead of `settings/` when the folder has the file.
 - Follow the loaded `## Rules` subsections and each loaded file's `## Custom` section; the Custom sections hold the project's non-negotiable rules.
 - Once per session, before the first skill runs: if `settings/SETTINGS.md` does not say `initialized: true`, ask one question with the options "Run atn-settings now (Recommended)" / "Continue without initializing". Skills invoked by other skills pass nothing extra for this.
