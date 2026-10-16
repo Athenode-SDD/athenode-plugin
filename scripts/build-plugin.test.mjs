@@ -480,9 +480,10 @@ describe('the build', () => {
         assert.throws(() => buildShowcase(root, generator), /the generator did not package the setup as it is/);
     });
 
-    test('fails on a server the package cannot hold, such as a ${VAR} in the command', { skip }, () => {
+    test('packages a server with a ${VAR} in the command, which Claude Code expands in every field', { skip }, () => {
         const root = fixture({ servers: { local: { type: 'stdio', command: '${TOOLS_DIR}/server', args: [] } } });
-        assert.throws(() => buildShowcase(root, generator), /the generator did not package the setup as it is[\s\S]*local/);
+        const files = buildShowcase(root, generator);
+        assert.equal(JSON.parse(text(files, `${PLUGIN_DIR}/.mcp.json`)).mcpServers.local.command, '${TOOLS_DIR}/server');
     });
 
     test('builds this repository: prefix-free skills, renamed references, no rules and no hook', { skip }, () => {
