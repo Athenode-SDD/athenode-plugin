@@ -1,5 +1,6 @@
-// Finds the names that @athenode/cli 0.10.7 renamed from "setup" to "plugin" in the texts of this
-// repository: the old MCP tools and parameters, the old CLI flags and the repository's old name.
+// Finds the names that @athenode/cli 0.10.7 and the backend renamed from "setup" to "plugin" in the
+// texts of this repository: the old MCP tools and parameters, the old CLI flags, the old error codes
+// and the repository's old name.
 // validate.mjs runs it over the skills, the agents, the rules, the settings and the docs.
 
 /** The old names, each with what to write instead. */
@@ -10,14 +11,16 @@ const LEGACY = [
     { pattern: /"setup"/g, instead: '"plugin"' },
     { pattern: /--setup(?:-by-id|-id)?(?![\w-])/g, instead: 'the --plugin flags' },
     { pattern: /\bathenode-setup\b/g, instead: 'athenode-plugin' },
+    { pattern: /\bsetup_slug_[a-z_*]+/g, instead: 'the plugin_slug_ code' },
+    { pattern: /\bsetup_name_conflict\b/g, instead: 'plugin_name_conflict' },
+    { pattern: /\bsetup_mcp_server\b/g, instead: 'plugin_mcp_server' },
 ];
 
 /**
- * What stays: the error codes 0.10.7 still returns verbatim, GitHub's `actions/setup-node` and the
- * local clone's directory, which keeps its old name until it is moved (always written as a path in
- * backticks).
+ * What stays: GitHub's `actions/setup-node` and the local clone's directory, which keeps its old
+ * name until it is moved (always written as a path in backticks).
  */
-const ALLOWED = [/\bsetup_slug_[a-z_*]+/g, /\bsetup_name_conflict\b/g, /actions\/setup-node/g, /`athenode-setup\/`/g];
+const ALLOWED = [/actions\/setup-node/g, /`athenode-setup\/`/g];
 
 /** The old names in `text`, as `{line, term, instead}`, in order. Empty when the text has none. */
 export function findLegacyTerms(text) {

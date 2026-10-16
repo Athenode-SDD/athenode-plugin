@@ -1,4 +1,4 @@
-// Tests of the check for the names @athenode/cli 0.10.7 renamed from "setup" to "plugin"
+// Tests of the check for the names @athenode/cli 0.10.7 and the backend renamed from "setup" to "plugin"
 // (legacy-terms.mjs, run by validate.mjs). Run with `node --test scripts/*.test.mjs`.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -30,8 +30,17 @@ describe('the legacy terms', () => {
         assert.deepEqual(terms('npx skills add Athenode-SDD/athenode-setup'), ['athenode-setup']);
     });
 
-    test('lets the error codes 0.10.7 still returns pass', () => {
-        assert.deepEqual(terms('Refused with `setup_name_conflict`, `setup_slug_conflict` or `setup_slug_*`.'), []);
+    test('finds the old error codes', () => {
+        assert.deepEqual(terms('Refused with `setup_name_conflict`, `setup_slug_conflict` or `setup_slug_*`.'), [
+            'setup_name_conflict',
+            'setup_slug_conflict',
+            'setup_slug_*',
+        ]);
+        assert.deepEqual(terms('A conflict of kind `setup_mcp_server`.'), ['setup_mcp_server']);
+    });
+
+    test('lets the new error codes pass', () => {
+        assert.deepEqual(terms('Refused with `plugin_name_conflict`, `plugin_slug_conflict`, `plugin_slug_*` or `plugin_mcp_server`.'), []);
     });
 
     test('lets actions/setup-node and the local directory as a path pass', () => {
@@ -44,7 +53,7 @@ describe('the legacy terms', () => {
     });
 
     test('reports each term on a line in order, an allowed one in between', () => {
-        assert.deepEqual(terms('`setupById` then `setup_name_conflict` then `setups_list`'), ['setupById', 'setups_list']);
+        assert.deepEqual(terms('`setupById` then `actions/setup-node` then `setups_list`'), ['setupById', 'setups_list']);
     });
 });
 
