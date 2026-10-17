@@ -14,7 +14,7 @@
   <a href="https://athenode.com">Website</a> ·
   <a href="https://athenode.com/docs">Documentation</a> ·
   <a href="https://athenode.com/docs/getting-started">Quickstart</a> ·
-  <a href="https://athenode.com/library">Plugin library</a> ·
+  <a href="https://lib.athenode.com">Plugin library</a> ·
   <a href="https://platform.athenode.com">Start for free</a>
 </p>
 
@@ -116,7 +116,7 @@ While a skill runs, it hands work to the 10 agents of the plugin, such as a plan
 
 ## Make the plugin your own
 
-Your project's copy of the standard plugin is yours to edit: change a skill, add an agent, write rules of your own or add an MCP server, in the web app or with `/atn:manage`. For a different job, such as a security review of your application, you install a different plugin. The [plugin library](https://athenode.com/library) is the shared catalogue of plugins that projects have published, and anyone can browse it.
+Your project's copy of the standard plugin is yours to edit: change a skill, add an agent, write rules of your own or add an MCP server, in the web app or with `/atn:manage`. For a different job, such as a security review of your application, you install a different plugin. The [plugin library](https://lib.athenode.com) is the shared catalogue of plugins that projects have published, and anyone can browse it.
 
 When Athenode changes the standard plugin, it updates your project's copy part by part.
 
@@ -197,7 +197,7 @@ The build fails when the generator cannot package the standard plugin as it is, 
 
 **The generator's version is pinned** in `package.json`: `@athenode/cli` in `devDependencies`, an exact version, installed by `npm ci`. A generator of any other version is refused.
 
-`scripts/standard-plugin.mjs` (`loadStandardPlugin`) reads the standard plugin for the generator. It is the twin of `loadSetup` in Athenode's `backend-java/scripts/default-setup/generate.mjs`, which turns the same files into the plugin a project gets; a change to how a file is read belongs in both.
+`scripts/standard-plugin.mjs` (`loadStandardPlugin`) reads the standard plugin for the generator. It is the twin of `loadPlugin` in Athenode's `backend-java/scripts/default-plugin/generate.mjs`, which turns the same files into the plugin a project gets; a change to how a file is read belongs in both.
 
 Check a change before you open a pull request:
 
