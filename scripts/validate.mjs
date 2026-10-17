@@ -4,6 +4,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
+import { CHECKED_DIRS, CHECKED_FILES, findLegacyTerms } from './legacy-terms.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -137,6 +138,21 @@ try {
     }
 } catch (e) {
     error('skills.sh.json', e.message);
+}
+// The names @athenode/cli 0.10.7 renamed from "setup" to "plugin" (see scripts/legacy-terms.mjs).
+function filesUnder(dir) {
+    return list(dir).flatMap((entry) => {
+        const path = `${dir}/${entry}`;
+        return statSync(join(ROOT, path)).isDirectory() ? filesUnder(path) : [path];
+    });
+}
+for (const path of [...CHECKED_DIRS.flatMap(filesUnder), ...CHECKED_FILES.filter((file) => existsSync(join(ROOT, file)))]) {
+    if (!path.endsWith('.md')) {
+        continue;
+    }
+    for (const { line, term, instead } of findLegacyTerms(readFileSync(join(ROOT, path), 'utf8'))) {
+        error(`${path}:${line}`, `"${term}" is an old name; write ${instead}`);
+    }
 }
 
 if (errors.length) {

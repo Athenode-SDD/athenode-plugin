@@ -1,11 +1,11 @@
-// Reads the setup in this repository as the `PluginSetup` the plugin generator of @athenode/cli
-// takes: the skills, the agents and the MCP servers in the shape of Athenode's export, which is
-// what a project's copy of the setup is built from.
+// Reads the standard plugin in this repository as the `PluginSetup` the plugin generator of
+// @athenode/cli takes: the skills, the agents and the MCP servers in the shape of Athenode's export,
+// which is what a project's copy of the standard plugin is built from.
 //
 // The twin of `loadSetup` in backend-java/scripts/default-setup/generate.mjs (`readDocument`,
-// `readItem`, `readServer`), which turns the same files into the stored setup. This repository
-// cannot depend on backend-java, so the two are kept in step by hand: a change to how a file is
-// read there belongs here too.
+// `readItem`, `readServer`), which turns the same files into the stored standard plugin. This
+// repository cannot depend on backend-java, so the two are kept in step by hand: a change to how a
+// file is read there belongs here too.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
@@ -91,16 +91,17 @@ const listDir = (dir) => (existsSync(dir) ? readdirSync(dir) : []);
 const byName = (a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
 
 /**
- * The setup under `root` as a `PluginSetup`: `{slug, skills, agents, mcpServers}`, each list sorted
- * by name. The rules and the settings files are not part of it: a plugin carries neither.
+ * The standard plugin under `root` as a `PluginSetup`: `{slug, skills, agents, mcpServers}`, each
+ * list sorted by name. The rules and the settings files are not part of it: a plugin package
+ * carries neither.
  */
-export function loadPluginSetup(root) {
+export function loadStandardPlugin(root) {
     const skills = listDir(join(root, 'skills')).map((name) => {
         const dir = join(root, 'skills', name);
         const extra = statSync(dir).isDirectory() ? readdirSync(dir).filter((file) => file !== 'SKILL.md') : [name];
         if (extra.length) {
-            // The stored setup has no bundle files (generate.mjs writes none), so the plugin has none
-            // either: a file here would be in neither, and is refused instead of dropped.
+            // The stored standard plugin has no bundle files (generate.mjs writes none), so the plugin
+            // package has none either: a file here would be in neither, and is refused instead of dropped.
             fail(`skills/${name}: a standard skill is a directory holding only SKILL.md (found ${extra.sort().join(', ')})`);
         }
         return { ...readItem(root, 'skill', name, `skills/${name}/SKILL.md`), files: [] };

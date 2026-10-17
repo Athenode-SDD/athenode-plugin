@@ -14,15 +14,15 @@
   <a href="https://athenode.com">Website</a> ·
   <a href="https://athenode.com/docs">Documentation</a> ·
   <a href="https://athenode.com/docs/getting-started">Quickstart</a> ·
-  <a href="https://athenode.com/library">Setup library</a> ·
+  <a href="https://lib.athenode.com">Plugin library</a> ·
   <a href="https://platform.athenode.com">Start for free</a>
 </p>
 
-## The standard Athenode setup
+## The standard Athenode plugin
 
 [Athenode](https://athenode.com) is a spec-driven development platform. You grow a tree of specifications (specs), from the whole application down to a task an agent finishes in one go, and your own AI coding tool builds from it.
 
-This repository holds the standard Athenode setup, the agent setup every new Athenode project starts with. An agent setup is a named bundle of what your AI coding tools work with: skills, agents, rules, MCP servers and setup files. The standard setup contains 7 skills, 10 agents, 1 rules text, 1 MCP server and 5 settings files, and one command installs it into Claude Code, Codex, Cursor or any other of the [30 supported AI tools](https://athenode.com/docs/supported-ai-tools).
+This repository holds the standard Athenode plugin, the plugin every new Athenode project starts with. A plugin is a named bundle of what your AI coding tools work with: skills, agents, rules, MCP servers and plugin files. The standard plugin contains 7 skills, 10 agents, 1 rules text, 1 MCP server and 5 settings files, and one command installs it into Claude Code, Codex, Cursor or any other of the [30 supported AI tools](https://athenode.com/docs/supported-ai-tools).
 
 ## What you get
 
@@ -36,8 +36,8 @@ An AI coding agent is good at a well-defined task and bad at guessing what you m
 | The workflow follows your project's settings | You choose once per project how thoroughly the agent tests, whether tests come before the code (TDD) or after it, when the code is reviewed and what the agent does with git, from branches and commits to an open pull request. You can add rules of your own on top. |
 | Search by meaning across the tree | You find a spec by describing it in your own words, in the web app or from your AI tool. Your agent searches the same way before it writes a spec, so it sees the specs the new one depends on or overlaps with. |
 | ToDo cards for what turns up along the way | A follow-up, tech debt, a bug or an idea becomes a ToDo card. An agent carries a card out by itself when it needs no answer from you, or the card becomes a spec through a mind map. |
-| One setup for every AI tool you use | The Athenode CLI installs the setup in the format each AI tool reads. Your own rules and MCP servers are kept, and you see every change before it is made. |
-| Your code stays in your repository | Athenode keeps your specs with their questions, answers, plans and statuses, your ToDo cards and your agent setups. Your AI tool does the building in your repository, on your subscription to it. |
+| One plugin for every AI tool you use | The Athenode CLI installs the plugin in the format each AI tool reads. Your own rules and MCP servers are kept, and you see every change before it is made. |
+| Your code stays in your repository | Athenode keeps your specs with their questions, answers, plans and statuses, your ToDo cards and your plugins. Your AI tool does the building in your repository, on your subscription to it. |
 
 ## Install
 
@@ -53,19 +53,19 @@ You need a free [Athenode account](https://platform.athenode.com), Node.js 22.12
 3. Enter the token, choose your AI tools and confirm the plan that `init` shows.
 4. Do what `init` prints under "Still to do in your tools", such as trusting the project folder or restarting a running session, so that each tool loads the skills, the agents and the Athenode MCP server.
 
-The [Quickstart](https://athenode.com/docs/getting-started) goes through each step, and [Install a setup](https://athenode.com/docs/agent-setups/install) describes everything `init` does.
+The [Quickstart](https://athenode.com/docs/getting-started) goes through each step, and [Install a plugin](https://athenode.com/docs/plugins/install) describes everything `init` does.
 
-`init` gives each tool the setup in the form that tool reads: a plugin where the tool takes one, and files elsewhere. For Claude Code the skills, the agents and the Athenode MCP server are also published as the plugin `atn` in this repository's marketplace. The project still needs `init` once, because the plugin carries no rules and no settings files. When the plugin is enabled for the project, `init` asks whether to keep it and write the rules only, or to replace it with its own install. To install the plugin, run in Claude Code:
+`init` gives each tool the plugin in the form that tool reads: a plugin package where the tool takes one, and files elsewhere. For Claude Code the skills, the agents and the Athenode MCP server are also published as the plugin package `atn` in this repository's marketplace. The project still needs `init` once, because the plugin package carries no rules and no settings files. When the plugin package is enabled for the project, `init` asks whether to keep it and write the rules only, or to replace it with its own install. To install the plugin package, run in Claude Code:
 
 ```text
-/plugin install atn --marketplace Athenode-SDD/athenode-setup
+/plugin install atn --marketplace Athenode-SDD/athenode-plugin
 ```
 
-On Claude Code before 2.1.275, add the marketplace first with `/plugin marketplace add Athenode-SDD/athenode-setup`, then run `/plugin install atn@athenode`. [The plugin's README](plugins/claude-code/README.md) describes what it runs.
+On Claude Code before 2.1.275, add the marketplace first with `/plugin marketplace add Athenode-SDD/athenode-plugin`, then run `/plugin install atn@athenode`. [The plugin package's README](plugins/claude-code/README.md) describes what it runs.
 
 ## Use the skills
 
-A skill is a reusable set of instructions that your AI tool runs as a command, such as `/atn:mindmap`. The skills below are written as the commands of the plugin `atn`, which is what you type in a tool that received the setup as a plugin and puts the plugin's name in front of a skill, such as Claude Code. Installed as files, the same skill is `/atn-mindmap`, and some tools have you name the skill to the agent. [Supported AI tools](https://athenode.com/docs/supported-ai-tools) gives the form for each tool, and `init` prints how to run the settings skill in each tool you selected.
+A skill is a reusable set of instructions that your AI tool runs as a command, such as `/atn:mindmap`. The skills below are written as the commands of the plugin package `atn`, which is what you type in a tool that received the plugin as a plugin package and puts the package's name in front of a skill, such as Claude Code. Installed as files, the same skill is `/atn-mindmap`, and some tools have you name the skill to the agent. [Supported AI tools](https://athenode.com/docs/supported-ai-tools) gives the form for each tool, and `init` prints how to run the settings skill in each tool you selected.
 
 You run the skills in your AI tool, in this order: settings once for the project, then a mind map for each piece of work, a decomposition when the work is large, and an apply run to have it built.
 
@@ -97,56 +97,56 @@ A ToDo card is a short note of work to do later: a follow-up, tech debt, a bug o
 
 `/atn:todo-dequeue` works through the open cards one by one. A card that needs thinking through becomes a spec through a mind map, and a card that needs no answer from you is carried out directly by an agent.
 
-### 6. Change the setup with `/atn:manage`
+### 6. Change the plugin with `/atn:manage`
 
-`/atn:manage` takes no part in building a spec. You use it when you want to change what your agents work with: you describe the change, and the skill lists, creates, changes or deletes setups and their skills, agents, rules, MCP servers and files, and works with the setup library.
+`/atn:manage` takes no part in building a spec. You use it when you want to change what your agents work with: you describe the change, and the skill lists, creates, changes or deletes plugins and their skills, agents, rules, MCP servers and files, imports external plugins, and works with the plugin library.
 
 ### Where to read more
 
-While a skill runs, it hands work to the 10 agents of the setup, such as a planner, an implementer and a reviewer. You do not run them yourself. The documentation has the arguments and options of each skill and the role of each agent.
+While a skill runs, it hands work to the 10 agents of the plugin, such as a planner, an implementer and a reviewer. You do not run them yourself. The documentation has the arguments and options of each skill and the role of each agent.
 
 | Topic | Documentation |
 |---|---|
 | The workflow as a whole | [The Athenode workflow](https://athenode.com/docs/workflow) |
-| Each skill | [`/atn:settings`](https://athenode.com/docs/workflow/atn-settings), [`/atn:mindmap`](https://athenode.com/docs/workflow/atn-mindmap), [`/atn:decompose`](https://athenode.com/docs/workflow/atn-decompose), [`/atn:apply`](https://athenode.com/docs/workflow/atn-apply), [`/atn:todo-enqueue`](https://athenode.com/docs/todo-cards/atn-todo-enqueue), [`/atn:todo-dequeue`](https://athenode.com/docs/todo-cards/atn-todo-dequeue), [`/atn:manage`](https://athenode.com/docs/agent-setups/atn-manage) |
-| Skills, agents and settings files of this setup | [Standard Athenode setup](https://athenode.com/docs/agent-setups/standard-setup) |
+| Each skill | [`/atn:settings`](https://athenode.com/docs/workflow/atn-settings), [`/atn:mindmap`](https://athenode.com/docs/workflow/atn-mindmap), [`/atn:decompose`](https://athenode.com/docs/workflow/atn-decompose), [`/atn:apply`](https://athenode.com/docs/workflow/atn-apply), [`/atn:todo-enqueue`](https://athenode.com/docs/todo-cards/atn-todo-enqueue), [`/atn:todo-dequeue`](https://athenode.com/docs/todo-cards/atn-todo-dequeue), [`/atn:manage`](https://athenode.com/docs/plugins/atn-manage) |
+| Skills, agents and settings files of this plugin | [Standard Athenode plugin](https://athenode.com/docs/plugins/standard-plugin) |
 | How to run a skill in each AI tool | [Supported AI tools](https://athenode.com/docs/supported-ai-tools) |
 | Specs, statuses and search | [Specifications](https://athenode.com/docs/specifications), [Search by meaning](https://athenode.com/docs/specifications/search) |
 | ToDo cards | [ToDo cards](https://athenode.com/docs/todo-cards) |
 
-## Make the setup your own
+## Make the plugin your own
 
-Your project's copy of the standard setup is yours to edit: change a skill, add an agent, write rules of your own or add an MCP server, in the web app or with `/atn:manage`. For a different job, such as a security review of your application, you install a different setup. The [setup library](https://athenode.com/library) is the shared catalogue of agent setups that projects have published, and anyone can browse it.
+Your project's copy of the standard plugin is yours to edit: change a skill, add an agent, write rules of your own or add an MCP server, in the web app or with `/atn:manage`. For a different job, such as a security review of your application, you install a different plugin. The [plugin library](https://lib.athenode.com) is the shared catalogue of plugins that projects have published, and anyone can browse it.
 
-When Athenode changes the standard setup, it updates your project's copy part by part.
+When Athenode changes the standard plugin, it updates your project's copy part by part.
 
 | Part of your copy | What an update does |
 |---|---|
-| A built-in skill or agent that your project has not changed | Receives the version from the standard setup. |
+| A built-in skill or agent that your project has not changed | Receives the version from the standard plugin. |
 | A built-in skill or agent that your project changed | Keeps your version. |
-| The rules, if your project has not changed them | Receive the version from the standard setup. |
+| The rules, if your project has not changed them | Receive the version from the standard plugin. |
 | The rules, if your project changed them | Keep your version. |
-| A skill or agent that the standard setup gains | Is added, unless your copy already has one of that name. |
+| A skill or agent that the standard plugin gains | Is added, unless your copy already has one of that name. |
 | Settings files, MCP servers and everything you added | Stay as they are. |
 
 An update changes the copy in your Athenode project. To bring it into a local project directory, run `npx @athenode/cli init` there again. `init` shows the changed files in its plan before it writes them.
 
-Go deeper: [Standard Athenode setup](https://athenode.com/docs/agent-setups/standard-setup) · [Agent setups](https://athenode.com/docs/agent-setups) · [Setup library](https://athenode.com/docs/library) · [Athenode MCP server](https://athenode.com/docs/athenode-mcp)
+Go deeper: [Standard Athenode plugin](https://athenode.com/docs/plugins/standard-plugin) · [Plugins](https://athenode.com/docs/plugins) · [Plugin library](https://athenode.com/docs/library) · [Athenode MCP server](https://athenode.com/docs/athenode-mcp)
 
 ## Repository layout
 
-The files are in Athenode's source format, which the Athenode CLI turns into the format each AI tool reads.
+The files are in Athenode's source format, which the Athenode CLI turns into the format each AI tool reads. The repository is `Athenode-SDD/athenode-plugin`; a local clone made before its rename may still sit in a directory named `athenode-setup/` until it is moved.
 
 | Path | What it holds |
 |---|---|
-| `description.md` | The setup's description, shown in Athenode. |
+| `description.md` | The plugin's description, shown in Athenode. |
 | `rules/athenode.md` | The rules text, installed as the Athenode rules block in `CLAUDE.md`, `AGENTS.md` and their counterparts. |
 | `subagents/<name>.md` | One agent per file. |
 | `skills/<name>/SKILL.md` | One skill per directory. |
 | `settings/<name>.md` | The five settings files. |
-| `mcp.json` | The setup's MCP server, `athenode`. |
+| `mcp.json` | The plugin's MCP server, `athenode`. |
 | `docs/targets.md` | The per-tool metadata: tool names and the reason behind each block. |
-| `plugins/claude-code/` | The setup as a Claude Code plugin, built from the skills, the agents and `mcp.json` by the generator of `@athenode/cli`. |
+| `plugins/claude-code/` | The plugin as a Claude Code plugin package, built from the skills, the agents and `mcp.json` by the generator of `@athenode/cli`. |
 | `skills.sh.json` | How the repository's page on skills.sh shows the skills. |
 
 A skill or agent file is YAML frontmatter followed by the prompt. The frontmatter holds `name`, equal to the file or directory name, and `description`, then one block per AI tool with the fields only that tool reads. A settings file has one frontmatter key, `summary`. The blank line after a frontmatter block is not part of the text.
@@ -168,7 +168,7 @@ copilot:
 
 ### Claude Code plugin
 
-`plugins/claude-code/` and `.claude-plugin/marketplace.json` are generated and are never edited by hand. They are built by the plugin generator of the Athenode CLI ([`@athenode/cli`](https://www.npmjs.com/package/@athenode/cli), its `@athenode/cli/plugin` entry), the same one the CLI uses to install a setup as a plugin, so the plugin here is what the CLI builds from a project's copy of this setup. `scripts/build-plugin.mjs` reads the files, hands them to the generator and writes what comes back, with the additions listed below.
+`plugins/claude-code/` and `.claude-plugin/marketplace.json` are generated and are never edited by hand. They are built by the plugin generator of the Athenode CLI ([`@athenode/cli`](https://www.npmjs.com/package/@athenode/cli), its `@athenode/cli/plugin` entry), the same one the CLI uses to install a plugin as a plugin package, so the package here is what the CLI builds from a project's copy of this plugin. `scripts/build-plugin.mjs` reads the files, hands them to the generator and writes what comes back, with the additions listed below.
 
 After a change to a skill, an agent or `mcp.json`, regenerate the plugin and commit the result with the change:
 
@@ -183,21 +183,21 @@ What the generator does with the names:
 - The frontmatter is the one Claude Code reads, taken from the `claudecode` block.
 - The plugin carries no rules and no settings files: the Athenode CLI writes the rules into the project's rules file.
 
-What the build adds for [Anthropic's plugin directory](https://claude.com/docs/plugins/submit), which the setup itself has nothing for:
+What the build adds for [Anthropic's plugin directory](https://claude.com/docs/plugins/submit), which the standard plugin itself has nothing for:
 
 - **README.** `plugins/claude-code/README.md` is a copy of `docs/plugin-readme.md`. It must describe everything the plugin runs, sends and fetches: update it with any change to that.
 - **Version.** The plugin's `version` is the `version` of `package.json`. Raise it with each change to the plugin: Claude Code updates an installed plugin only when its version changes.
 - **Listing fields.** The manifest gets `displayName` (`Athenode`; the commands keep the `atn:` prefix of `name`) and the fields Anthropic's directory shows on the plugin's page: `icon`, `documentationUrl`, `supportUrl`, `privacyPolicyUrl` and `termsOfServiceUrl`.
 - **Icon.** `plugins/claude-code/.claude-plugin/icon.png` is a copy of `assets/icon.png`, a square PNG of 512 to 2048 px.
-- **No unscoped `Bash`.** Each skill's `allowed-tools` loses the plain `Bash`, which pre-approves any shell command and holds the plugin for review: in the plugin, Claude Code asks before each shell command. The setup itself, installed by the CLI, keeps it.
+- **No unscoped `Bash`.** Each skill's `allowed-tools` loses the plain `Bash`, which pre-approves any shell command and holds the plugin for review: in the plugin, Claude Code asks before each shell command. The standard plugin itself, installed by the CLI, keeps it.
 - **Internal for the `skills` CLI.** Each skill gets `metadata.internal: true`, so that `npx skills add` lists the skills of `skills/` only (see "skills.sh" below). Claude Code ignores the field.
 - **Pinned MCP server.** In the plugin, Athenode's MCP server runs `@athenode/cli` at the generator's version (the pin below), not `@latest` as in `mcp.json`: the directory refuses a launcher without an exact version. Raising the pin moves both.
 
-The build fails when the generator cannot package the setup as it is, for example two skills that get one name once the prefix is dropped (`atn-review` beside `review`) or an MCP server whose command holds a `${VAR}`. A skill without the `atn-` prefix is not an error by itself: it keeps its name, as `/atn:review`.
+The build fails when the generator cannot package the standard plugin as it is, for example two skills that get one name once the prefix is dropped (`atn-review` beside `review`) or an MCP server whose command holds a `${VAR}`. A skill without the `atn-` prefix is not an error by itself: it keeps its name, as `/atn:review`.
 
 **The generator's version is pinned** in `package.json`: `@athenode/cli` in `devDependencies`, an exact version, installed by `npm ci`. A generator of any other version is refused.
 
-`scripts/plugin-setup.mjs` reads the setup for the generator. It is the twin of `loadSetup` in Athenode's `backend-java/scripts/default-setup/generate.mjs`, which turns the same files into the setup a project gets; a change to how a file is read belongs in both.
+`scripts/standard-plugin.mjs` (`loadStandardPlugin`) reads the standard plugin for the generator. It is the twin of `loadPlugin` in Athenode's `backend-java/scripts/default-plugin/generate.mjs`, which turns the same files into the plugin a project gets; a change to how a file is read belongs in both.
 
 Check a change before you open a pull request:
 
@@ -209,7 +209,7 @@ npm ci
 npm test
 ```
 
-`npm test` validates the setup, runs the tests of the build and fails when the committed plugin differs from what the generator builds, byte for byte. Commit the rebuilt plugin before you go on: Athenode's own build refuses a checkout with uncommitted changes.
+`npm test` validates the plugin, including that no text still uses a name from before the rename to plugins (`scripts/legacy-terms.mjs`), runs the tests of the build and fails when the committed plugin differs from what the generator builds, byte for byte. Commit the rebuilt plugin before you go on: Athenode's own build refuses a checkout with uncommitted changes.
 
 ### Smithery
 
@@ -220,10 +220,10 @@ The plugin's skills are listed on [Smithery](https://smithery.ai/skills/athenode
 [skills.sh](https://skills.sh) has no submission step: it lists a skill once someone installs it with the `skills` CLI, which finds the skills of this repository in `skills/`:
 
 ```bash
-npx skills add Athenode-SDD/athenode-setup
+npx skills add Athenode-SDD/athenode-plugin
 ```
 
-That installs the skill files only, without the agents, the rules, the settings files and the Athenode MCP server the skills call. A skill installed this way works in a project where `npx @athenode/cli init` has run; "Install" above is the way to get the whole setup.
+That installs the skill files only, without the agents, the rules, the settings files and the Athenode MCP server the skills call. A skill installed this way works in a project where `npx @athenode/cli init` has run; "Install" above is the way to get the whole plugin.
 
 `skills.sh.json` sets how the repository's page on skills.sh shows the skills: one group with a title and a description, which holds every skill in the order of the workflow. `npm test` fails when a skill of `skills/` is missing from it. skills.sh reads the file from `main` when someone installs a skill, and caches the page, so a change shows up after the next install.
 
