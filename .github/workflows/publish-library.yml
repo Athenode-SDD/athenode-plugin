@@ -1,0 +1,46 @@
+name: Publish to the plugin library
+
+# Publishes the standard plugin as the next version of its entry in Athenode's plugin library
+# (lib.athenode.com/athenode): scripts/publish-library.mjs builds the snapshot archive, compares it
+# with the library's current snapshot and uploads it only when the content changed, as the
+# repository publisher client of the Athenode organisation. Runs on main only, never for a pull
+# request (a fork gets no secrets). See README.md, "Plugin library".
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-library
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      ATHENODE_API_URL: ${{ vars.ATHENODE_API_URL || 'https://platform.athenode.com/api' }}
+      ATHENODE_KEYCLOAK_URL: ${{ vars.ATHENODE_KEYCLOAK_URL || 'https://auth.athenode.com' }}
+      ATHENODE_STANDARD_ENTRY_SLUG: ${{ vars.ATHENODE_STANDARD_ENTRY_SLUG || 'athenode' }}
+      ATHENODE_LIBRARY_CLIENT_ID: ${{ secrets.ATHENODE_LIBRARY_CLIENT_ID }}
+      ATHENODE_LIBRARY_CLIENT_SECRET: ${{ secrets.ATHENODE_LIBRARY_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Check the secrets
+        run: |
+          set -euo pipefail
+          if [ -z "${ATHENODE_LIBRARY_CLIENT_ID}" ] || [ -z "${ATHENODE_LIBRARY_CLIENT_SECRET}" ]; then
+            echo "::error::The repository secrets ATHENODE_LIBRARY_CLIENT_ID and ATHENODE_LIBRARY_CLIENT_SECRET (the athenode-library-publisher Keycloak client) are not set."
+            exit 1
+          fi
+      - run: npm ci
+      - run: npm test
+      - name: Publish the snapshot
+        run: node scripts/publish-library.mjs

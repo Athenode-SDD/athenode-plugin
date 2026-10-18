@@ -8,6 +8,8 @@
     "prepare": "git config core.hooksPath .githooks",
     "build": "node scripts/build-plugin.mjs",
     "update-cli": "node scripts/update-cli.mjs",
+    "library:snapshot": "node scripts/library-snapshot.mjs",
+    "library:publish": "node scripts/publish-library.mjs",
     "test": "node scripts/validate.mjs && node --test scripts/*.test.mjs && node scripts/build-plugin.mjs --check"
   },
   "devDependencies": {

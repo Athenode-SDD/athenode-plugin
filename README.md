@@ -229,6 +229,18 @@ That installs the skill files only, without the agents, the rules, the settings 
 
 The `skills` CLI also reads `.claude-plugin/marketplace.json`, so it would list each skill a second time from the plugin, without the `atn-` prefix. The build marks the plugin's skills as internal to keep one entry per skill.
 
+### Plugin library
+
+The plugin is also the pinned entry of Athenode's [plugin library](https://lib.athenode.com/athenode), and every push to `main` publishes it there as a new version when its content changed. Each library version is an immutable snapshot: a zip of `snapshot.json`, the plugin in Athenode's neutral export format inside an envelope with the entry's name, description and category, and one `blobs/<sha256>` entry per bundle file.
+
+- `scripts/library-snapshot.mjs` builds that archive from the files of this repository: the skills with their bundle files, the subagents, the rules, the settings files with their `summary`, `mcp.json` and `description.md`. The entry is `Athenode` in the category `programming`, and the plugin is named `atn`. The output is the same bytes for the same files. `npm run library:snapshot` writes it to `library-snapshot.zip`.
+- `scripts/publish-library.mjs` downloads the entry's current snapshot from the public library API and compares the content with the archive, leaving out what the server adds. When it is the same, nothing is uploaded. Otherwise the script gets a client-credentials token of the Keycloak client `athenode-library-publisher` and uploads the archive as the entry's next version, with the commit as the version note.
+- The `Publish to the plugin library` workflow (`.github/workflows/publish-library.yml`) runs `npm ci`, `npm test` and the publish script on each push to `main`, and you can also start it by hand. It never runs for a pull request.
+
+The workflow needs the repository secrets `ATHENODE_LIBRARY_CLIENT_ID` (`athenode-library-publisher`) and `ATHENODE_LIBRARY_CLIENT_SECRET`, the secret of that Keycloak client. The repository variables `ATHENODE_API_URL` (default `https://platform.athenode.com/api`), `ATHENODE_KEYCLOAK_URL` (default `https://auth.athenode.com`) and `ATHENODE_STANDARD_ENTRY_SLUG` (default `athenode`) override where it publishes.
+
+A project's copy of the standard plugin is still updated from the version Athenode's backend pins, not from the library, so for a while the two can differ.
+
 ## Licence
 
 The content of this repository is published under the [Apache-2.0 licence](LICENSE). Athenode is a hosted service with a Free plan, and its CLI, [`@athenode/cli`](https://www.npmjs.com/package/@athenode/cli), is published under the same licence.
