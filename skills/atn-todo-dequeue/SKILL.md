@@ -66,7 +66,7 @@ This skill is the only actor that runs state-changing git commands; the subagent
 
 ### Queue
 
-1. Call `todos_list` with `status` `open`: only `open` cards are ever taken. If `todos_list` is not available in the session, say that the installed Athenode tools are too old for this skill, ask the user to run `npx @athenode/cli init` in the project and restart the session, and stop.
+1. Call `todos_list` with `status` `open`: only `open` cards are ever taken. If `todos_list` is not available in the session, say that the installed Athenode tools are too old for this skill, ask the user to run `athenode init` in the project and restart the session, and stop.
 2. Keep the cards that match the arguments. A card id given as an argument that is not in the list is never processed: read it with `todos_get` and record it for the report as closed (with its status) or as not found.
 3. Sort the cards yourself, since the list comes in another order: by priority from `high` through `medium` to `low`; within a priority by type, in the order `bug`, `tech-debt`, `follow-up`, `idea`; within a type by `createdAt`, the oldest card first.
 4. Keep the set of cards offered in this run, whatever happened to them: prepared as a specification, carried out, skipped, dismissed, failed and left open, or reached when the run stopped. A card in that set is never offered again in this run.

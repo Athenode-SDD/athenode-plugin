@@ -4,9 +4,8 @@
 
 ## Requirements
 
-- An [Athenode account](https://platform.athenode.com) with a project, and a project token from the project's **Tokens** page.
-- Node.js 22.12 or later, with `npx` on the `PATH`.
-- The project initialized once: run `npx @athenode/cli init` in the root of your repository and enter the token. Until then the skills stop and ask you to run it.
+- Node.js 22.12 or later and the `athenode` package: `npm i -g athenode`, then `athenode service install` to run the local Athenode service (the daemon), or a self-hosted Athenode Pro server.
+- The project initialized once: run `athenode init` in the root of your repository (with `--server <url>` for a Pro server). Until then the skills stop and ask you to run it.
 
 ## Install
 

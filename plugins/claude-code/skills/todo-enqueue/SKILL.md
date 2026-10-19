@@ -38,7 +38,7 @@ Ask every question in the project's question format, recommended option first.
 
 ### Failures
 
-- `todos_list` or `todos_create` is not available in the session: say that the installed Athenode tools are too old for this skill, ask the user to run `npx @athenode/cli init` in the project and restart the session, and stop.
+- `todos_list` or `todos_create` is not available in the session: say that the installed Athenode tools are too old for this skill, ask the user to run `athenode init` in the project and restart the session, and stop.
 - The `todos_list` call is refused or fails: report the reason and stop, creating nothing.
 - The `todos_create` call is refused or fails (the subscription plan's card limit, an invalid `--origin`, a missing permission or any other error): report the reason and stop. Do not retry: no card was created.
 

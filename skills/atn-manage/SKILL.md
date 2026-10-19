@@ -47,12 +47,12 @@ Manage the project's plugins and everything inside one of them — its files, sk
 - A project holds several plugins; exactly one is installed in this local project. The plugin tools (`plugins_list`, `plugins_create`, `plugins_clone`, `plugins_update`, `plugins_delete`, `plugins_pull_preview`, `plugins_pull`) act on any plugin of the project.
 - Every other tool acts on one plugin's content: its file tree (`plugins_files_*`), skills (`skills_*`), agents (`agents_*`), MCP servers (`mcp_servers_*`) and rules (`rules_get`, `rules_update`). Without `pluginId` that is the installed plugin; with `pluginId` it is any other plugin of the project.
 - Work on the installed plugin unless the request names another one. Resolve a named plugin to its id with `plugins_list` and pass that id as `pluginId` in every call of the operation, the reads included; if the name matches no plugin or several, show the plugins and ask.
-- A change to a plugin that is not installed is stored on the server only: no local file is regenerated and the result has no `install` and `regeneration` parts. It reaches a project when that plugin is installed there, or on the next `npx @athenode/cli init` where it already is.
+- A change to a plugin that is not installed is stored on the server only and the result has no `sync` part. It reaches a project when that plugin is installed there, or on the next `athenode sync` where it already is.
 - The plugin library tools (`library_*`) name their plugin with `plugin` — its exact name, or its id together with `pluginById` — and never with `pluginId`. `plugin` is always required and the installed plugin is never assumed: take the name from `plugins_list`, and ask when the request does not say which plugin is meant. A library entry is its exact name, or its id together with `byId`.
 - The pull tools (`plugins_pull_preview`, `plugins_pull`) name the plugin that receives the content with `plugin` in the same way, and the plugin the content is taken from with `source` — its exact name, or its id together with `sourceById`. Both are always required and both are plugins of this project.
 - The external plugin tools (`plugins_external_*`) name their plugin with `plugin` and `pluginById` in the same way. `plugin` is required to update an external plugin; an import without it creates a new plugin, and `plugins_external_sources` without it lists the installed plugin's sources.
-- Installing a different plugin is done by the user in a terminal, never by you: `npx @athenode/cli init --plugin <id or slug>` in the project root. `init` then prints, under "Still to do in your tools", what each of the user's AI tools needs before it uses the plugin; that step differs by tool, so point the user at those lines and name no step of your own.
-- Everything is stored on the Athenode server. Never create or edit the generated files in the local repository (skill, agent, rules and MCP config files): the write tools regenerate them, and a manual edit is overwritten by the next regeneration. Read local files only to take content the user wants to store in the plugin.
+- Installing a different plugin is done by the user in a terminal, never by you: `athenode init --plugin <id or slug>` in the project root. `init` then prints, under "Still to do in your tools", what each of the user's AI tools needs before it uses the plugin; that step differs by tool, so point the user at those lines and name no step of your own.
+- Everything is stored on the Athenode server the project is bound to: the local Athenode service, or a Pro server. Never create or edit the generated files in the local repository (skill, agent, rules and MCP config files): `athenode sync` writes them from the server, and a manual edit is overwritten by the next sync. Read local files only to take content the user wants to store in the plugin.
 
 ## Flow
 
@@ -64,7 +64,7 @@ Manage the project's plugins and everything inside one of them — its files, sk
    - **Public display** (`publicDisplay: true` on `library_edit`, for an entry whose public display was turned off): ask a question about the open web, and only when the user asked for public display. Say that the entry's name, description and category and the full content of its agents, skills with their bundle files, rules and plugin files become visible to anyone on the open web without an account and may be indexed by search engines, that MCP server configuration is public too and installable with `npx @athenode/cli use <slug>`, and that after it is turned off the entry can stay on the public site for up to a day and longer in search engines' caches. Pass `publicDisplay: true` with `confirmPublic: true` only after a yes to that question. `publicDisplay: false` needs no question.
    - **Replacements**: a `library_merge`, `library_update`, `plugins_pull`, `plugins_external_import` or `plugins_external_update` whose `decisions` replace or remove any item or replace the rules. List exactly which skills, agents, MCP servers, files and rules will be replaced or removed, and say that there is no undo and no backup. A merge, update, pull or import without `decisions` adds what is new, replaces nothing and needs no question.
 4. **Apply the operations** one call at a time, in the order the user gave. If a call fails, stop the remaining operations that depend on it, keep going with the independent ones and report the error text.
-5. **Check the result.** After a write to the installed plugin, which regenerates it, read the `regeneration` and `install` parts of the result: report `missingEnvVars`, and when the tool returned an error although the change was saved, say that the server holds the change and the local files are stale until `npx @athenode/cli init` is re-run. What brings the change into use differs by AI tool and by whether the tool has the plugin as a plugin package or as files, so take it from the result and never from memory: pass on the "Still to do in your tools" lines of `regeneration.text` and the `regeneration.reloadHint` as they are, for the tools they name. Only a "to use the … plugin" line, a "Restart the tool or reload its window" line and a `reloadHint` say how a change comes into use; a line about trusting the project folder or approving the MCP servers does not. For every tool of the install that the result names no such step for, and so for every tool when the result has no lines at all, say that the tool reads the change at its next start at the latest: a running session is restarted.
+5. **Check the result.** The tools change the server only; the repository's files are not regenerated. When the result of a write has a `sync` part with `stale: true`, the change concerns the installed plugin: tell the user to run `athenode sync` in the project root, which writes the changed files and prints, under "Still to do in your tools", what each AI tool needs before it uses them (that step differs by tool, so point the user at those lines and name no step of your own). For a tool that `athenode sync` names no such step for, say that the tool reads the change at its next start at the latest: a running session is restarted.
 6. Give the report (see "## Report").
 
 ## Operations
@@ -78,7 +78,7 @@ Every tool outside "### Plugins", "### External plugins" and "### Plugin library
 | List the plugins | `plugins_list` | Show name, slug, id and description, and mark the installed one and the project's own copy of the standard plugin. For a plugin added from the library, `libraryOrigin` names its entry and version and says whether an update is available. |
 | Create an empty plugin | `plugins_create` (`name`, optional `description` and `slug`) | It has no skills, agents, rules, files or MCP servers, and is not installed. Without `slug` the server derives one from the name. |
 | Create a plugin from an existing one | `plugins_clone` (`source`, `name`, optional `slug`) | Copies the source with its content; the installed plugin is not changed. Prefer this when the user wants a variant of a plugin they already have. |
-| Rename a plugin or change its description or slug | `plugins_update` (`target`, `name`, `description` and/or `slug`) | The slug is the name of the plugin package and the prefix of its commands: a changed slug renames both, and the local install follows at the next `npx @athenode/cli init`. |
+| Rename a plugin or change its description or slug | `plugins_update` (`target`, `name`, `description` and/or `slug`) | The slug is the name of the plugin package and the prefix of its commands: a changed slug renames both, and the local install follows at the next `athenode sync`. |
 | Delete a plugin | `plugins_delete` (`target`) | See "## Safeguards". |
 | Pull another plugin of this project into a plugin | `plugins_pull_preview`, then `plugins_pull` (`source`, `plugin`) | Copies skills, agents, MCP servers, files and rules of `source` into `plugin`, all of them or the ones the user picks. Always preview first and show the new, conflicting and identical items and the state of the rules. Pass the user's choices as `decisions`, built from the preview; without `decisions` everything new is added, nothing is replaced and the rules are kept. |
 
@@ -88,7 +88,7 @@ For a pull, `source` and `plugin` are named as "## Scope" says (`sourceById`, `p
 
 - `decisions` has the preview's shape: `sourceFingerprint` and `fingerprint` from the preview, per kind (`skills`, `agents`, `mcpServers`, `files`) the lists `add` and `replace`, and `rules` as `keep`, `append` or `replace`. Appended rules go under a heading with the source plugin's name. A replacement needs `confirmReplace: true` and the confirmation of step 3 of "## Flow".
 - A pull with `decisions` is refused when either plugin changed since the preview. Repeat the preview, show the user what is different and apply with the new values; never retry with the old ones.
-- A pull into the installed plugin regenerates the local files (see step 5 of "## Flow"); into any other plugin it changes the server only.
+- A pull into the installed plugin leaves the local files stale until `athenode sync` (see step 5 of "## Flow"); into any other plugin it changes the server only.
 - A pull is a one-time copy: the pulled items are independent of the source, nothing about the source is recorded and there is no update later. To take later changes of the source, pull again.
 - Only a plugin of this project can be the source. Pulling from a plugin of another project exists only in the web app; for a library entry use the tools of "### Plugin library"; for a third-party plugin package use those of "### External plugins".
 
@@ -104,7 +104,7 @@ An external plugin is a third-party plugin package — an Agent Plugin (`plugin.
 
 - `decisions` has the preview's shape, with its `previewId`, `sourceFingerprint` and `fingerprint`; replacing or removing an item needs `confirmReplace: true` and the confirmation of step 3 of "## Flow". A `library_merge_stale` error means the plugin changed since the preview: repeat it.
 - A local folder is resolved against the project root and uploaded as a zip, without `.git`, `node_modules` and links. Import only a folder the user named.
-- An import or update into the installed plugin regenerates the local files (see step 5 of "## Flow").
+- An import or update into the installed plugin leaves the local files stale until `athenode sync` (see step 5 of "## Flow").
 
 ### Files of a plugin
 
@@ -169,7 +169,7 @@ The plugin library has two levels of visibility: every signed-in Athenode user s
 | Unpublish an entry | `library_unpublish` | Confirm first (step 3 of "## Flow"). |
 
 - A merge or update with `decisions` is refused when the plugin or the entry changed since the preview. Repeat the preview, show the user what is different and apply with the new values; never retry with the old ones.
-- A merge or update into the installed plugin regenerates the local files (see step 5 of "## Flow"); into any other plugin it changes the server only.
+- A merge or update into the installed plugin leaves the local files stale until `athenode sync` (see step 5 of "## Flow"); into any other plugin it changes the server only.
 - A plugin added with `library_add` carries the publisher's `settings/` files. After the user installs it, suggest the `atn-settings` skill to make them fit this project.
 - Likes and skipping a version exist only in the web app.
 
@@ -177,8 +177,8 @@ The plugin library has two levels of visibility: every signed-in Athenode user s
 
 Name the consequence in the confirmation question whenever one of these applies:
 
-- **The installed plugin** (`plugins_delete`): this project loses its skills, agents, rules and MCP servers on the next regeneration. Suggest installing another plugin first.
-- **The `athenode` MCP server** (`mcp_servers_remove`, or an update of its command or arguments): every tool this and every other Athenode skill uses comes from it; without it nothing works in a project that has the plugin installed until `npx @athenode/cli init` is re-run on a plugin that has it.
+- **The installed plugin** (`plugins_delete`): this project loses its skills, agents, rules and MCP servers on the next `athenode sync`. Suggest installing another plugin first.
+- **The `athenode` MCP server** (`mcp_servers_remove`, or an update of its command or arguments): every tool this and every other Athenode skill uses comes from it; without it nothing works in a project that has the plugin installed until `athenode init` is re-run on a plugin that has it.
 - **The `settings/` files** (`plugins_files_delete`, or an update of a `## Parameters` or `## Rules` section): the specification skills load them. Change parameters and rules by invoking the `atn-settings` skill instead; here, edit only their `## Custom` sections, keeping the other sections byte-for-byte.
 - **The built-in skills and agents** (`atn-apply`, `atn-decompose`, `atn-mindmap`, `atn-settings`, `atn-manage`, `atn-todo-enqueue`, `atn-todo-dequeue`, and the `spec-*` and `todo-*` agents): they invoke each other by name, so removing or renaming one breaks the others. A changed built-in skill or agent no longer receives Athenode's updates.
 - **The `MCP`, `Settings`, `Questions` and `Language` sections of the rules**: every Athenode agent and skill relies on them; keep them when changing the rules unless the user explicitly asks to drop them. The same holds for a merge or update that replaces the rules.
@@ -192,5 +192,5 @@ Without a user to ask, perform no destructive operation, no publishing and no me
 
 - Every operation performed, with the object's name (and id for plugins) and what changed; listings as a compact table. Name the plugin whenever it is not the installed one.
 - Every operation skipped, declined or failed, with the reason or the error text.
-- What the user has to do next: the step of step 5 of "## Flow", per tool, for new or renamed skills, agents and MCP servers of the installed plugin; export the environment variables a server references; run `npx @athenode/cli init --plugin <id or slug>` to install a new plugin — one created here, imported or added from the library — or one changed here that is not installed.
+- What the user has to do next: the step of step 5 of "## Flow", per tool, for new or renamed skills, agents and MCP servers of the installed plugin (`athenode sync`); export the environment variables a server references; run `athenode init --plugin <id or slug>` to install a new plugin — one created here, imported or added from the library — or one changed here that is not installed.
 - After a publish, the entry's name and version; after a merge, update or import, what was added, replaced and removed.

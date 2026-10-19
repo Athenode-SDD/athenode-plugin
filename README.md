@@ -15,7 +15,7 @@
   <a href="https://athenode.com/docs">Documentation</a> ·
   <a href="https://athenode.com/docs/getting-started">Quickstart</a> ·
   <a href="https://lib.athenode.com">Plugin library</a> ·
-  <a href="https://platform.athenode.com">Start for free</a>
+  <a href="https://athenode.com/docs/install">Install</a>
 </p>
 
 ## The standard Athenode plugin
@@ -41,16 +41,23 @@ An AI coding agent is good at a well-defined task and bad at guessing what you m
 
 ## Install
 
-You need a free [Athenode account](https://platform.athenode.com), Node.js 22.12 or later and one of the [supported AI coding tools](https://athenode.com/docs/supported-ai-tools).
+You need Node.js 22.12 or later and one of the [supported AI coding tools](https://athenode.com/docs/supported-ai-tools). Athenode runs on your own machine, with no account: the `athenode` package holds the CLI and the local Athenode service (the daemon) that stores your specs and plugins. A team runs a self-hosted Athenode Pro server instead.
 
-1. In the web app, create a project, open **Tokens** and copy a project token.
+1. Install the package and the service:
+
+   ```bash
+   npm i -g athenode
+   athenode service install
+   ```
+
 2. In the root of your repository, run:
 
    ```bash
-   npx @athenode/cli init
+   athenode init
    ```
 
-3. Enter the token, choose your AI tools and confirm the plan that `init` shows.
+   For a Pro server, run `athenode init --server <url>` and sign in through the browser.
+3. Choose or create the project, choose your AI tools and confirm the plan that `init` shows.
 4. Do what `init` prints under "Still to do in your tools", such as trusting the project folder or restarting a running session, so that each tool loads the skills, the agents and the Athenode MCP server.
 
 The [Quickstart](https://athenode.com/docs/getting-started) goes through each step, and [Install a plugin](https://athenode.com/docs/plugins/install) describes everything `init` does.
@@ -129,7 +136,7 @@ When Athenode changes the standard plugin, it updates your project's copy part b
 | A skill or agent that the standard plugin gains | Is added, unless your copy already has one of that name. |
 | Settings files, MCP servers and everything you added | Stay as they are. |
 
-An update changes the copy in your Athenode project. To bring it into a local project directory, run `npx @athenode/cli init` there again. `init` shows the changed files in its plan before it writes them.
+An update changes the copy in your Athenode project. To bring it into a local project directory, run `athenode sync` there. `init` shows the changed files in its plan before it writes them.
 
 Go deeper: [Standard Athenode plugin](https://athenode.com/docs/plugins/standard-plugin) · [Plugins](https://athenode.com/docs/plugins) · [Plugin library](https://athenode.com/docs/library) · [Athenode MCP server](https://athenode.com/docs/athenode-mcp)
 
@@ -223,7 +230,7 @@ The plugin's skills are listed on [Smithery](https://smithery.ai/skills/athenode
 npx skills add Athenode-SDD/athenode-plugin
 ```
 
-That installs the skill files only, without the agents, the rules, the settings files and the Athenode MCP server the skills call. A skill installed this way works in a project where `npx @athenode/cli init` has run; "Install" above is the way to get the whole plugin.
+That installs the skill files only, without the agents, the rules, the settings files and the Athenode MCP server the skills call. A skill installed this way works in a project where `athenode init` has run; "Install" above is the way to get the whole plugin.
 
 `skills.sh.json` sets how the repository's page on skills.sh shows the skills: one group with a title and a description, which holds every skill in the order of the workflow. `npm test` fails when a skill of `skills/` is missing from it. skills.sh reads the file from `main` when someone installs a skill, and caches the page, so a change shows up after the next install.
 

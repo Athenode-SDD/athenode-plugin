@@ -94,8 +94,17 @@ export function resolveGenerator({ root = ROOT } = {}) {
     return { module: require(`${GENERATOR_PACKAGE}/plugin`), version };
 }
 
-/** Whether `server` is the CLI's stdio launcher (`npx -y @athenode/cli@<any> mcp`). */
-function isCliLauncher(server) {
+/** The daemon's MCP endpoint on the loopback interface, at any port: `http://127.0.0.1:<port>/api/mcp`. */
+const LOOPBACK_MCP_URL = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/api\/mcp\/?$/;
+
+/**
+ * Whether `server` is Athenode's own MCP server: the daemon's loopback HTTP endpoint, as in
+ * `mcp.json`, or the old CLI's stdio launcher (`npx -y @athenode/cli@<any> mcp`).
+ */
+function isAthenodeServer(server) {
+    if (server.transport === 'http' && typeof server.url === 'string') {
+        return LOOPBACK_MCP_URL.test(server.url);
+    }
     const args = server.args ?? [];
     const at = args.findIndex((arg) => CLI_PACKAGE_ARG.test(arg));
     return server.transport === 'stdio' && at !== -1 && args.indexOf('mcp', at + 1) !== -1;
@@ -103,15 +112,15 @@ function isCliLauncher(server) {
 
 /**
  * Points Athenode's MCP server at the local daemon ({@link DAEMON_MCP_URL}): the standard plugin's
- * `mcp.json` keeps the cloud CLI's stdio launcher (`npx -y @athenode/cli@latest mcp`) for the cloud
- * until the cut-over, and `athenode init` rewrites it per repository; the plugin package needs the
- * daemon's URL. Every other server is kept; the plugin given is not changed.
+ * `mcp.json` names the daemon at its default port (`athenode init` rewrites it per repository), and
+ * the plugin package needs the port overridable through `ATHENODE_PORT`. The old CLI's stdio
+ * launcher is rewritten the same way. Every other server is kept; the plugin given is not changed.
  */
 export function daemonServer(plugin) {
     return {
         ...plugin,
         mcpServers: plugin.mcpServers.map((server) =>
-            isCliLauncher(server) ? { name: server.name, transport: 'http', command: null, args: null, env: null, url: DAEMON_MCP_URL, headers: null } : server,
+            isAthenodeServer(server) ? { name: server.name, transport: 'http', command: null, args: null, env: null, url: DAEMON_MCP_URL, headers: null } : server,
         ),
     };
 }
