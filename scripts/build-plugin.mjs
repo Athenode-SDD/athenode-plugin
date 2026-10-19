@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Builds the Claude Code plugin (plugins/claude-code/) and the marketplace manifest
 // (.claude-plugin/marketplace.json) from the standard plugin in this repository, with the plugin
-// generator of @athenode/cli. This script reads the standard plugin (standard-plugin.mjs), pins Athenode's MCP server to the
-// generator's version, drops the unscoped Bash from the skills' allowed-tools, marks the skills as
+// generator of @athenode/cli. This script reads the standard plugin (standard-plugin.mjs), points Athenode's MCP server at the
+// local daemon, drops the unscoped Bash from the skills' allowed-tools, marks the skills as
 // internal for the `skills` CLI, hands it to the generator and writes what comes back with the
 // plugin's README and icon: the names, the frontmatter and the layout are the generator's.
 // See README.md, "Claude Code plugin".
@@ -24,8 +24,16 @@ const GENERATOR_PACKAGE = '@athenode/cli';
 const README_SOURCE = 'docs/plugin-readme.md';
 /** The plugin's icon, a square PNG of 512 to 2048 px: copied into the plugin as `.claude-plugin/icon.png`. */
 const ICON_SOURCE = 'assets/icon.png';
-/** Athenode's MCP server in `mcp.json`: `@athenode/cli`, with or without a version or a tag. */
+/** Athenode's MCP server in `mcp.json`: `@athenode/cli`, with or without a version or a tag, then `mcp`. */
 const CLI_PACKAGE_ARG = /^@athenode\/cli(@[^@/\s]*)?$/;
+
+/**
+ * Athenode's MCP server in the plugin: the local daemon's Streamable HTTP endpoint on 127.0.0.1, its
+ * default port overridable through `ATHENODE_PORT` (Claude Code expands `${VAR:-default}`). The URL
+ * names no project: the daemon binds the session to the repository's project through the client's
+ * roots (`.athenode/config.json`, written by `athenode init`).
+ */
+export const DAEMON_MCP_URL = 'http://127.0.0.1:${ATHENODE_PORT:-3717}/api/mcp';
 
 const DESCRIPTION =
     "Athenode's spec-driven development workflow: think the work through as a specification tree, then have Claude Code build it.";
@@ -63,7 +71,7 @@ const EXACT_VERSION = /^\d+\.\d+\.\d+$/;
 
 /**
  * Finds the generator: the installed `@athenode/cli` (`node_modules`), which must be the version
- * package.json pins in `devDependencies`, exactly. `scripts/update-cli.mjs` raises the pin.
+ * package.json pins in `devDependencies`, exactly (raise it by hand with `npm i -D -E @athenode/cli@<version>`).
  *
  * Returns `{module, version}`, `module` being the generator's exports. Throws on a pin that is not
  * an exact version, on a generator that is not installed and on an installed version other than
@@ -86,16 +94,25 @@ export function resolveGenerator({ root = ROOT } = {}) {
     return { module: require(`${GENERATOR_PACKAGE}/plugin`), version };
 }
 
+/** Whether `server` is the CLI's stdio launcher (`npx -y @athenode/cli@<any> mcp`). */
+function isCliLauncher(server) {
+    const args = server.args ?? [];
+    const at = args.findIndex((arg) => CLI_PACKAGE_ARG.test(arg));
+    return server.transport === 'stdio' && at !== -1 && args.indexOf('mcp', at + 1) !== -1;
+}
+
 /**
- * Pins Athenode's MCP server to `version`: Anthropic's plugin directory refuses a launcher without
- * an exact version (`@latest` included). The standard plugin itself keeps `@latest`, so that a
- * project's copy follows the CLI's releases; the plugin package follows them when the pin is raised.
+ * Points Athenode's MCP server at the local daemon ({@link DAEMON_MCP_URL}): the standard plugin's
+ * `mcp.json` keeps the cloud CLI's stdio launcher (`npx -y @athenode/cli@latest mcp`) for the cloud
+ * until the cut-over, and `athenode init` rewrites it per repository; the plugin package needs the
+ * daemon's URL. Every other server is kept; the plugin given is not changed.
  */
-export function pinAthenodeServer(plugin, version) {
-    const pin = (arg) => (CLI_PACKAGE_ARG.test(arg) ? `@athenode/cli@${version}` : arg);
+export function daemonServer(plugin) {
     return {
         ...plugin,
-        mcpServers: plugin.mcpServers.map((server) => (server.args ? { ...server, args: server.args.map(pin) } : server)),
+        mcpServers: plugin.mcpServers.map((server) =>
+            isCliLauncher(server) ? { name: server.name, transport: 'http', command: null, args: null, env: null, url: DAEMON_MCP_URL, headers: null } : server,
+        ),
     };
 }
 
@@ -157,8 +174,8 @@ export function completeManifest(text) {
 /**
  * Builds the showcase from the standard plugin under `root`: a map from a path relative to `root` to the
  * bytes of the file, the package under `plugins/claude-code/` and the marketplace manifest. Holds
- * what the generator returned, given the standard plugin with Athenode's MCP server pinned to the generator's
- * version, without the unscoped `Bash` in the skills' `allowed-tools` and with the skills marked as
+ * what the generator returned, given the standard plugin with Athenode's MCP server pointed at the
+ * local daemon, without the unscoped `Bash` in the skills' `allowed-tools` and with the skills marked as
  * internal for the `skills` CLI, and package.json's
  * `version`, with the manifest completed (`completeManifest`), plus the README from
  * `docs/plugin-readme.md` and the icon from `assets/icon.png`. Throws when
@@ -176,7 +193,7 @@ export function buildShowcase(root, generator) {
     if (!existsSync(join(root, ICON_SOURCE))) {
         throw new Error(`${ICON_SOURCE} is missing: it is the plugin's icon`);
     }
-    const plugin = hideFromSkillsCli(dropUnscopedBash(pinAthenodeServer(loadStandardPlugin(root), generator.version)));
+    const plugin = hideFromSkillsCli(dropUnscopedBash(daemonServer(loadStandardPlugin(root))));
     const result = generator.module.buildPluginPackage(plugin, TOOL, { ...OPTIONS, version });
     const problems = [
         ...result.notices.map((notice) => `${notice.code}: ${notice.message}`),

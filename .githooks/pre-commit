@@ -1,5 +1,0 @@
-#!/bin/sh
-# Raises the pin of @athenode/cli to its latest version on npm, rebuilds the plugin and stages it
-# (scripts/update-cli.mjs). Turned on by `npm install` / `npm ci` (the prepare script).
-# ATHENODE_SKIP_CLI_UPDATE=1 skips it.
-exec node scripts/update-cli.mjs --stage

@@ -1,13 +1,8 @@
 {
   "mcpServers": {
     "athenode": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "-y",
-        "@athenode/cli@0.10.7",
-        "mcp"
-      ]
+      "type": "http",
+      "url": "http://127.0.0.1:${ATHENODE_PORT:-3717}/api/mcp"
     }
   }
 }
