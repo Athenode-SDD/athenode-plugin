@@ -198,13 +198,13 @@ What the build adds for [Anthropic's plugin directory](https://claude.com/docs/p
 - **Icon.** `plugins/claude-code/.claude-plugin/icon.png` is a copy of `assets/icon.png`, a square PNG of 512 to 2048 px.
 - **No unscoped `Bash`.** Each skill's `allowed-tools` loses the plain `Bash`, which pre-approves any shell command and holds the plugin for review: in the plugin, Claude Code asks before each shell command. The standard plugin itself, installed by the CLI, keeps it.
 - **Internal for the `skills` CLI.** Each skill gets `metadata.internal: true`, so that `npx skills add` lists the skills of `skills/` only (see "skills.sh" below). Claude Code ignores the field.
-- **The daemon's MCP server.** In the plugin, Athenode's MCP server is the local daemon's Streamable HTTP endpoint, `http://127.0.0.1:${ATHENODE_PORT:-3717}/api/mcp` (Claude Code expands the default port and lets `ATHENODE_PORT` override it), instead of the CLI's stdio launcher of `mcp.json` (`npx -y @athenode/cli@latest mcp`, which the standard plugin keeps for the cloud until the cut-over; `athenode init` writes the daemon's project URL in each repository instead). The URL names no project: the daemon binds each session to the repository's project through Claude Code's MCP roots and the repository's `.athenode/config.json` (written by `athenode init`). It needs a running daemon (`npm i -g athenode`, then `athenode service install`). With both the plugin and a repository's `.mcp.json` entry, Claude Code lists two Athenode servers; both bind to the same project.
+- **The daemon's MCP server.** In the plugin, Athenode's MCP server is the local daemon's Streamable HTTP endpoint, `http://127.0.0.1:${ATHENODE_PORT:-3717}/api/mcp` (Claude Code expands the default port and lets `ATHENODE_PORT` override it), where `mcp.json` names the daemon's default address, `http://127.0.0.1:3717/api/mcp` (`athenode init` writes the daemon's project URL in each repository instead). The URL names no project: the daemon binds each session to the repository's project through Claude Code's MCP roots and the repository's `.athenode/config.json` (written by `athenode init`). It needs a running daemon (`npm i -g athenode`, then `athenode service install`). With both the plugin and a repository's `.mcp.json` entry, Claude Code lists two Athenode servers; both bind to the same project.
 
 The build fails when the generator cannot package the standard plugin as it is, for example two skills that get one name once the prefix is dropped (`atn-review` beside `review`) or an MCP server whose command holds a `${VAR}`. A skill without the `atn-` prefix is not an error by itself: it keeps its name, as `/atn:review`.
 
 **The generator's version is pinned** in `package.json`: `@athenode/cli` in `devDependencies`, an exact version, installed by `npm ci`. A generator of any other version is refused. Raise it by hand (`npm i -D -E @athenode/cli@<version>`, then `npm run build`); no hook raises it any more, since the plugin no longer runs the CLI.
 
-`scripts/standard-plugin.mjs` (`loadStandardPlugin`) reads the standard plugin for the generator. It is the twin of `loadPlugin` in Athenode's `backend-java/scripts/default-plugin/generate.mjs`, which turns the same files into the plugin a project gets; a change to how a file is read belongs in both.
+`scripts/standard-plugin.mjs` (`loadStandardPlugin`) reads the standard plugin for the generator.
 
 Check a change before you open a pull request:
 
@@ -246,8 +246,8 @@ The plugin is also the pinned entry of Athenode's [plugin library](https://lib.a
 
 The workflow needs the repository secrets `ATHENODE_LIBRARY_CLIENT_ID` (`athenode-library-publisher`) and `ATHENODE_LIBRARY_CLIENT_SECRET`, the secret of that Keycloak client. The repository variables `ATHENODE_API_URL` (default `https://platform.athenode.com/api`), `ATHENODE_KEYCLOAK_URL` (default `https://auth.athenode.com`) and `ATHENODE_STANDARD_ENTRY_SLUG` (default `athenode`) override where it publishes.
 
-A project's copy of the standard plugin is still updated from the version Athenode's backend pins, not from the library, so for a while the two can differ.
+The publish script asks the public library API as the pinned `@athenode/cli` version (the `X-Athenode-Cli-Version` header, overridden by `ATHENODE_CLI_VERSION`). The backend refuses a CLI older than its minimum, 0.11.0 since the cut-over, with `426 CLI_UPGRADE_REQUIRED`, so the pin must be at least that version before a push to `main` publishes.
 
 ## Licence
 
-The content of this repository is published under the [Apache-2.0 licence](LICENSE). Athenode is a hosted service with a Free plan, and its CLI, [`@athenode/cli`](https://www.npmjs.com/package/@athenode/cli), is published under the same licence.
+The content of this repository is published under the [Apache-2.0 licence](LICENSE). Athenode runs as the free local `athenode` daemon or a self-hosted Athenode Pro server, and its CLI, [`@athenode/cli`](https://www.npmjs.com/package/@athenode/cli), is published under the same licence.
