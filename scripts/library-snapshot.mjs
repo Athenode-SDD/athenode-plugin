@@ -4,11 +4,12 @@
 // plugin export document) and one `blobs/<sha256>` entry per distinct bundle file. CI uploads it as the
 // next version of the standard entry (scripts/publish-library.mjs). See README.md, "Plugin library".
 //
-// The loading follows `loadPlugin` in backend-java/scripts/default-plugin/generate.mjs (the subagents,
-// the skills, the settings files with their `summary` frontmatter, the rules, the MCP servers and the
-// description), which turns the same files into the stored standard plugin. This repository cannot
-// depend on backend-java, so the two are kept in step by hand. Unlike the stored standard plugin, a
-// skill here may carry bundle files next to its SKILL.md.
+// The loading (the subagents, the skills, the settings files with their `summary` frontmatter, the
+// rules, the MCP servers and the description) has a twin, `loadStandardPlugin` in
+// ssh-gateway/packages/plugins/build/fetch-standard-snapshot.mjs, which reads the same files into the
+// standard plugin's snapshot the daemon and Pro bundle. This repository cannot depend on the monorepo,
+// so the two are kept in step by hand: a change to how a file is read here belongs there too. A skill
+// here may carry bundle files next to its SKILL.md.
 //
 //   node scripts/library-snapshot.mjs [out.zip]   write the archive (default: library-snapshot.zip)
 import { createHash } from 'node:crypto';
