@@ -1,6 +1,6 @@
 ### MCP
 
-Specifications and this project's plugin files, including its workflow settings under `settings/`, are accessed through the tools of the `athenode` MCP server. Pass large texts such as specification content, plans and settings files inline as tool parameters. If these tools are not available in the session, ask the user to run `npx @athenode/cli init` in this project and restart the session.
+Specifications and this project's plugin files, including its workflow settings under `settings/`, are accessed through the tools of the `athenode` MCP server. Pass large texts such as specification content, plans and settings files inline as tool parameters. If these tools are not available in the session, ask the user to run `athenode init` in this project (it binds the repository to the local Athenode service, or to a Pro server with `--server <url>`) and restart the session.
 
 ### Settings
 

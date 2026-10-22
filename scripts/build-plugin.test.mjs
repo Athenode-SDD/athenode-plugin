@@ -4,12 +4,12 @@
 // The tests that build a package need the generator of @athenode/cli; where it cannot be resolved
 // (`npm ci` not run) they are skipped, and the others still run.
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { after, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { buildShowcase, checkShowcase, dropUnscopedBash, hideFromSkillsCli, main, pinAthenodeServer, resolveGenerator } from './build-plugin.mjs';
+import { buildShowcase, checkShowcase, DAEMON_MCP_URL, daemonServer, dropUnscopedBash, hideFromSkillsCli, main, resolveGenerator } from './build-plugin.mjs';
 import { loadStandardPlugin } from './standard-plugin.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -188,7 +188,8 @@ describe('the adapter', () => {
         assert.ok(plugin.skills.every((skill) => skill.name.startsWith('atn-') && skill.files.length === 0));
         assert.equal(plugin.agents.length, 10);
         assert.deepEqual(plugin.mcpServers.map((server) => server.name), ['athenode']);
-        assert.equal(plugin.mcpServers[0].transport, 'stdio');
+        assert.equal(plugin.mcpServers[0].transport, 'http');
+        assert.equal(plugin.mcpServers[0].url, 'http://127.0.0.1:3717/api/mcp');
         assert.ok(!('rules' in plugin));
     });
 });
@@ -304,23 +305,36 @@ describe('the drift check', () => {
     });
 });
 
-describe('pinning Athenode\'s MCP server', () => {
-    const plugin = (args) => ({ slug: 'atn', skills: [], agents: [], mcpServers: [{ name: 's', transport: 'stdio', command: 'npx', args, env: null, url: null, headers: null }] });
-    const pinned = (args) => pinAthenodeServer(plugin(args), '9.8.7').mcpServers[0].args;
+describe('pointing Athenode\'s MCP server at the local daemon', () => {
+    const plugin = (args) => ({ slug: 'atn', skills: [], agents: [], mcpServers: [{ name: 'athenode', transport: 'stdio', command: 'npx', args, env: null, url: null, headers: null }] });
+    const daemon = { name: 'athenode', transport: 'http', command: null, args: null, env: null, url: 'http://127.0.0.1:${ATHENODE_PORT:-3717}/api/mcp', headers: null };
 
-    test('replaces @latest, any other version and no version with the given one', () => {
-        assert.deepEqual(pinned(['-y', '@athenode/cli@latest', 'mcp']), ['-y', '@athenode/cli@9.8.7', 'mcp']);
-        assert.deepEqual(pinned(['@athenode/cli@0.1.0', 'mcp']), ['@athenode/cli@9.8.7', 'mcp']);
-        assert.deepEqual(pinned(['@athenode/cli', 'mcp']), ['@athenode/cli@9.8.7', 'mcp']);
+    test('the URL: the daemon on 127.0.0.1, its port overridable through ATHENODE_PORT, no project (bound through the roots)', () => {
+        assert.equal(DAEMON_MCP_URL, 'http://127.0.0.1:${ATHENODE_PORT:-3717}/api/mcp');
     });
 
-    test('leaves other packages, a remote server and the plugin given alone', () => {
-        assert.deepEqual(pinned(['-y', '@athenode/cli-extra@latest', 'other@latest']), ['-y', '@athenode/cli-extra@latest', 'other@latest']);
+    test('replaces the stdio launcher of the CLI, whatever its version, with the daemon\'s URL', () => {
+        for (const args of [['-y', '@athenode/cli@latest', 'mcp'], ['@athenode/cli@0.1.0', 'mcp'], ['@athenode/cli', 'mcp']]) {
+            assert.deepEqual(daemonServer(plugin(args)).mcpServers, [daemon]);
+        }
+    });
+
+    test('gives the daemon entry of mcp.json (loopback HTTP /api/mcp) the overridable port', () => {
+        const http = (url) => ({ slug: 'atn', skills: [], agents: [], mcpServers: [{ name: 'athenode', transport: 'http', command: null, args: null, env: null, url, headers: null }] });
+        for (const url of ['http://127.0.0.1:3717/api/mcp', 'http://localhost:3717/api/mcp', 'http://127.0.0.1:4000/api/mcp']) {
+            assert.deepEqual(daemonServer(http(url)).mcpServers, [daemon]);
+        }
+        assert.deepEqual(daemonServer(http('https://example.com/api/mcp')), http('https://example.com/api/mcp'));
+    });
+
+    test('leaves other servers, a remote server and the plugin given alone', () => {
+        const other = plugin(['-y', '@athenode/cli-extra@latest', 'other@latest']);
+        assert.deepEqual(daemonServer(other), other);
         const remote = { slug: 'atn', skills: [], agents: [], mcpServers: [{ name: 'r', transport: 'http', command: null, args: null, env: null, url: 'https://example.com', headers: null }] };
-        assert.deepEqual(pinAthenodeServer(remote, '9.8.7'), remote);
-        const given = plugin(['@athenode/cli@latest']);
-        pinAthenodeServer(given, '9.8.7');
-        assert.deepEqual(given.mcpServers[0].args, ['@athenode/cli@latest']);
+        assert.deepEqual(daemonServer(remote), remote);
+        const given = plugin(['@athenode/cli@latest', 'mcp']);
+        daemonServer(given);
+        assert.deepEqual(given.mcpServers[0].args, ['@athenode/cli@latest', 'mcp']);
     });
 });
 
@@ -431,10 +445,10 @@ describe('the build', () => {
         assert.throws(() => buildShowcase(fixture({ version: '1.0' }), generator), /must hold the plugin's version/);
     });
 
-    test('pins Athenode\'s MCP server to the generator\'s version in the package', { skip }, () => {
+    test('writes Athenode\'s MCP server as the daemon\'s http URL in the package, with ${ATHENODE_PORT:-3717}', { skip }, () => {
         const servers = { athenode: { type: 'stdio', command: 'npx', args: ['-y', '@athenode/cli@latest', 'mcp'] } };
         const mcp = JSON.parse(text(buildShowcase(fixture({ servers }), generator), `${PLUGIN_DIR}/.mcp.json`));
-        assert.deepEqual(mcp.mcpServers.athenode.args, ['-y', `@athenode/cli@${PIN}`, 'mcp']);
+        assert.deepEqual(mcp.mcpServers.athenode, { type: 'http', url: 'http://127.0.0.1:${ATHENODE_PORT:-3717}/api/mcp' });
     });
 
     test('lists exactly one plugin, atn, in the marketplace athenode', { skip }, () => {
@@ -508,9 +522,9 @@ describe('the build', () => {
         const rules = readFileSync(join(ROOT, 'rules/athenode.md'), 'utf8').split('\n').find((line) => line.trim().length > 40);
         assert.ok([...files.values()].every((content) => !content.toString('utf8').includes(rules)));
 
-        const servers = JSON.parse(readFileSync(join(ROOT, 'mcp.json'), 'utf8')).mcpServers;
-        servers.athenode.args = servers.athenode.args.map((arg) => arg.replace(/^@athenode\/cli@latest$/, `@athenode/cli@${PIN}`));
-        assert.deepEqual(JSON.parse(text(files, `${PLUGIN_DIR}/.mcp.json`)).mcpServers, servers);
+        // The standard plugin names the daemon at its default port; the package makes the port overridable.
+        assert.deepEqual(JSON.parse(readFileSync(join(ROOT, 'mcp.json'), 'utf8')).mcpServers.athenode, { type: 'http', url: 'http://127.0.0.1:3717/api/mcp' });
+        assert.deepEqual(JSON.parse(text(files, `${PLUGIN_DIR}/.mcp.json`)).mcpServers, { athenode: { type: 'http', url: 'http://127.0.0.1:${ATHENODE_PORT:-3717}/api/mcp' } });
 
         const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
         assert.equal(pkg.name, 'athenode-plugin');
@@ -520,10 +534,15 @@ describe('the build', () => {
         assert.equal(manifest.repository, 'https://github.com/Athenode-SDD/athenode-plugin');
     });
 
-    test('pins this repository to @athenode/cli 0.10.7 at plugin version 1.1.0 or later', () => {
+    test('pins this repository\'s generator to @athenode/cli 0.10.7 at plugin version 1.2.0 or later, with no CLI-pin hook', () => {
         const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
-        const [major, minor] = pkg.version.split('.').map(Number);
-        assert.ok(major > 1 || (major === 1 && minor >= 1), `version ${pkg.version} must be at least 1.1.0`);
+        const [major, minor, patch] = pkg.version.split('.').map(Number);
+        assert.ok(major > 1 || (major === 1 && minor >= 2), `version ${pkg.version} must be at least 1.2.0`);
+        assert.ok(Number.isInteger(patch));
+        assert.equal(pkg.scripts.prepare, undefined, 'no prepare script setting the hooks path');
+        assert.equal(pkg.scripts['update-cli'], undefined);
+        assert.equal(existsSync(join(ROOT, '.githooks', 'pre-commit')), false);
+        assert.equal(existsSync(join(ROOT, 'scripts', 'update-cli.mjs')), false);
         const [cliMajor, cliMinor, cliPatch] = PIN.split('.').map(Number);
         assert.ok(cliMajor > 0 || cliMinor > 10 || (cliMinor === 10 && cliPatch >= 7), `@athenode/cli ${PIN} must be at least 0.10.7`);
     });

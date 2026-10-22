@@ -4,9 +4,8 @@
 
 ## Requirements
 
-- An [Athenode account](https://platform.athenode.com) with a project, and a project token from the project's **Tokens** page.
-- Node.js 22.12 or later, with `npx` on the `PATH`.
-- The project initialized once: run `npx @athenode/cli init` in the root of your repository and enter the token. Until then the skills stop and ask you to run it.
+- Node.js 22.12 or later and the `athenode` package: `npm i -g athenode`, then `athenode service install` to run the local Athenode service (the daemon), or a self-hosted Athenode Pro server.
+- The project initialized once: run `athenode init` in the root of your repository (with `--server <url>` for a Pro server). Until then the skills stop and ask you to run it.
 
 ## Install
 
@@ -43,9 +42,9 @@ The skills pre-approve no shell commands: Claude Code asks before each one they 
 
 ## What the plugin runs, sends and fetches
 
-- **The MCP server.** Claude Code starts `npx -y @athenode/cli@<version> mcp`, a pinned version of the [Athenode CLI](https://www.npmjs.com/package/@athenode/cli), downloaded from the npm registry on first use. The CLI's source is public on npm.
-- **Where it connects.** The server talks only to the Athenode API, `https://api.athenode.com`, authenticated with the project token that `init` stores in `.athenode/config.json` in your repository. Keep that file out of version control. The environment variables `ATHENODE_TOKEN` and `ATHENODE_API_URL` override the stored token and the API address.
-- **What it sends.** What the skills write to your Athenode project: specs with their questions, answers, implementation plans, statuses and blockers, ToDo cards, and the plugin with its skills, agents, rules, MCP servers and settings files. It sends no source code by itself; a spec or a plan holds what Claude writes into it, which can quote your code.
+- **The MCP server.** Claude Code connects to the local Athenode daemon over Streamable HTTP, `http://127.0.0.1:${ATHENODE_PORT:-3717}/api/mcp` (port 3717 unless the environment variable `ATHENODE_PORT` names another). The plugin starts nothing itself: install and start the daemon first, `npm i -g athenode` then `athenode service install` (it then starts at every login).
+- **Where it connects.** Only to that daemon, on your own machine (127.0.0.1). It binds the session to the repository's Athenode project through the folder Claude Code works in (its MCP roots): the binding is `.athenode/config.json`, which `athenode init` writes in your repository. No token is stored or sent.
+- **What it sends.** What the skills write to your Athenode project on the daemon: specs with their questions, answers, implementation plans, statuses and blockers, ToDo cards, and the plugin with its skills, agents, rules, MCP servers and settings files. It sends no source code by itself; a spec or a plan holds what Claude writes into it, which can quote your code.
 - **What it fetches.** Your project's specs, ToDo cards and plugins. The skills read the project's settings files (`settings/*.md`) from Athenode and follow them: they hold the workflow choices you made with `/atn:settings` and the rules you added yourself, and you can read and edit them in the web app at any time.
 - **The plugin library.** `/atn:manage` can browse plugins that other Athenode projects published, and add or merge one into your project, only when you ask for it. It imports an external plugin from a repository or a folder only when you name it. Publishing a plugin of yours to the library, which makes it public, is done only after you confirm it.
 - **Nothing else.** No hooks, no telemetry, no other network calls. The plugin does not change Claude Code's permission settings.

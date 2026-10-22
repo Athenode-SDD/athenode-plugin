@@ -15,7 +15,7 @@
   <a href="https://athenode.com/docs">Documentation</a> ·
   <a href="https://athenode.com/docs/getting-started">Quickstart</a> ·
   <a href="https://lib.athenode.com">Plugin library</a> ·
-  <a href="https://platform.athenode.com">Start for free</a>
+  <a href="https://athenode.com/docs/install">Install</a>
 </p>
 
 ## The standard Athenode plugin
@@ -41,16 +41,23 @@ An AI coding agent is good at a well-defined task and bad at guessing what you m
 
 ## Install
 
-You need a free [Athenode account](https://platform.athenode.com), Node.js 22.12 or later and one of the [supported AI coding tools](https://athenode.com/docs/supported-ai-tools).
+You need Node.js 22.12 or later and one of the [supported AI coding tools](https://athenode.com/docs/supported-ai-tools). Athenode runs on your own machine, with no account: the `athenode` package holds the CLI and the local Athenode service (the daemon) that stores your specs and plugins. A team runs a self-hosted Athenode Pro server instead.
 
-1. In the web app, create a project, open **Tokens** and copy a project token.
+1. Install the package and the service:
+
+   ```bash
+   npm i -g athenode
+   athenode service install
+   ```
+
 2. In the root of your repository, run:
 
    ```bash
-   npx @athenode/cli init
+   athenode init
    ```
 
-3. Enter the token, choose your AI tools and confirm the plan that `init` shows.
+   For a Pro server, run `athenode init --server <url>` and sign in through the browser.
+3. Choose or create the project, choose your AI tools and confirm the plan that `init` shows.
 4. Do what `init` prints under "Still to do in your tools", such as trusting the project folder or restarting a running session, so that each tool loads the skills, the agents and the Athenode MCP server.
 
 The [Quickstart](https://athenode.com/docs/getting-started) goes through each step, and [Install a plugin](https://athenode.com/docs/plugins/install) describes everything `init` does.
@@ -129,7 +136,7 @@ When Athenode changes the standard plugin, it updates your project's copy part b
 | A skill or agent that the standard plugin gains | Is added, unless your copy already has one of that name. |
 | Settings files, MCP servers and everything you added | Stay as they are. |
 
-An update changes the copy in your Athenode project. To bring it into a local project directory, run `npx @athenode/cli init` there again. `init` shows the changed files in its plan before it writes them.
+An update changes the copy in your Athenode project. To bring it into a local project directory, run `athenode sync` there. `init` shows the changed files in its plan before it writes them.
 
 Go deeper: [Standard Athenode plugin](https://athenode.com/docs/plugins/standard-plugin) · [Plugins](https://athenode.com/docs/plugins) · [Plugin library](https://athenode.com/docs/library) · [Athenode MCP server](https://athenode.com/docs/athenode-mcp)
 
@@ -191,13 +198,13 @@ What the build adds for [Anthropic's plugin directory](https://claude.com/docs/p
 - **Icon.** `plugins/claude-code/.claude-plugin/icon.png` is a copy of `assets/icon.png`, a square PNG of 512 to 2048 px.
 - **No unscoped `Bash`.** Each skill's `allowed-tools` loses the plain `Bash`, which pre-approves any shell command and holds the plugin for review: in the plugin, Claude Code asks before each shell command. The standard plugin itself, installed by the CLI, keeps it.
 - **Internal for the `skills` CLI.** Each skill gets `metadata.internal: true`, so that `npx skills add` lists the skills of `skills/` only (see "skills.sh" below). Claude Code ignores the field.
-- **Pinned MCP server.** In the plugin, Athenode's MCP server runs `@athenode/cli` at the generator's version (the pin below), not `@latest` as in `mcp.json`: the directory refuses a launcher without an exact version. Raising the pin moves both.
+- **The daemon's MCP server.** In the plugin, Athenode's MCP server is the local daemon's Streamable HTTP endpoint, `http://127.0.0.1:${ATHENODE_PORT:-3717}/api/mcp` (Claude Code expands the default port and lets `ATHENODE_PORT` override it), where `mcp.json` names the daemon's default address, `http://127.0.0.1:3717/api/mcp` (`athenode init` writes the daemon's project URL in each repository instead). The URL names no project: the daemon binds each session to the repository's project through Claude Code's MCP roots and the repository's `.athenode/config.json` (written by `athenode init`). It needs a running daemon (`npm i -g athenode`, then `athenode service install`). With both the plugin and a repository's `.mcp.json` entry, Claude Code lists two Athenode servers; both bind to the same project.
 
 The build fails when the generator cannot package the standard plugin as it is, for example two skills that get one name once the prefix is dropped (`atn-review` beside `review`) or an MCP server whose command holds a `${VAR}`. A skill without the `atn-` prefix is not an error by itself: it keeps its name, as `/atn:review`.
 
-**The generator's version is pinned** in `package.json`: `@athenode/cli` in `devDependencies`, an exact version, installed by `npm ci`. A generator of any other version is refused.
+**The generator's version is pinned** in `package.json`: `@athenode/cli` in `devDependencies`, an exact version, installed by `npm ci`. A generator of any other version is refused. Raise it by hand (`npm i -D -E @athenode/cli@<version>`, then `npm run build`); no hook raises it any more, since the plugin no longer runs the CLI.
 
-`scripts/standard-plugin.mjs` (`loadStandardPlugin`) reads the standard plugin for the generator. It is the twin of `loadPlugin` in Athenode's `backend-java/scripts/default-plugin/generate.mjs`, which turns the same files into the plugin a project gets; a change to how a file is read belongs in both.
+`scripts/standard-plugin.mjs` (`loadStandardPlugin`) reads the standard plugin for the generator.
 
 Check a change before you open a pull request:
 
@@ -223,12 +230,24 @@ The plugin's skills are listed on [Smithery](https://smithery.ai/skills/athenode
 npx skills add Athenode-SDD/athenode-plugin
 ```
 
-That installs the skill files only, without the agents, the rules, the settings files and the Athenode MCP server the skills call. A skill installed this way works in a project where `npx @athenode/cli init` has run; "Install" above is the way to get the whole plugin.
+That installs the skill files only, without the agents, the rules, the settings files and the Athenode MCP server the skills call. A skill installed this way works in a project where `athenode init` has run; "Install" above is the way to get the whole plugin.
 
 `skills.sh.json` sets how the repository's page on skills.sh shows the skills: one group with a title and a description, which holds every skill in the order of the workflow. `npm test` fails when a skill of `skills/` is missing from it. skills.sh reads the file from `main` when someone installs a skill, and caches the page, so a change shows up after the next install.
 
 The `skills` CLI also reads `.claude-plugin/marketplace.json`, so it would list each skill a second time from the plugin, without the `atn-` prefix. The build marks the plugin's skills as internal to keep one entry per skill.
 
+### Plugin library
+
+The plugin is also the pinned entry of Athenode's [plugin library](https://lib.athenode.com/athenode), and every push to `main` publishes it there as a new version when its content changed. Each library version is an immutable snapshot: a zip of `snapshot.json`, the plugin in Athenode's neutral export format inside an envelope with the entry's name, description and category, and one `blobs/<sha256>` entry per bundle file.
+
+- `scripts/library-snapshot.mjs` builds that archive from the files of this repository: the skills with their bundle files, the subagents, the rules, the settings files with their `summary`, `mcp.json` and `description.md`. The entry is `Athenode` in the category `programming`, and the plugin is named `atn`. The output is the same bytes for the same files. `npm run library:snapshot` writes it to `library-snapshot.zip`.
+- `scripts/publish-library.mjs` downloads the entry's current snapshot from the public library API and compares the content with the archive, leaving out what the server adds. When it is the same, nothing is uploaded. Otherwise the script gets a client-credentials token of the Keycloak client `athenode-library-publisher` and uploads the archive as the entry's next version, with the commit as the version note.
+- The `Publish to the plugin library` workflow (`.github/workflows/publish-library.yml`) runs `npm ci`, `npm test` and the publish script on each push to `main`, and you can also start it by hand. It never runs for a pull request.
+
+The workflow needs the repository secrets `ATHENODE_LIBRARY_CLIENT_ID` (`athenode-library-publisher`) and `ATHENODE_LIBRARY_CLIENT_SECRET`, the secret of that Keycloak client. The repository variables `ATHENODE_API_URL` (default `https://platform.athenode.com/api`), `ATHENODE_KEYCLOAK_URL` (default `https://auth.athenode.com`) and `ATHENODE_STANDARD_ENTRY_SLUG` (default `athenode`) override where it publishes.
+
+The publish script asks the public library API as the pinned `@athenode/cli` version (the `X-Athenode-Cli-Version` header, overridden by `ATHENODE_CLI_VERSION`). The backend refuses a CLI older than its minimum, 0.11.0 since the cut-over, with `426 CLI_UPGRADE_REQUIRED`, so the pin must be at least that version before a push to `main` publishes.
+
 ## Licence
 
-The content of this repository is published under the [Apache-2.0 licence](LICENSE). Athenode is a hosted service with a Free plan, and its CLI, [`@athenode/cli`](https://www.npmjs.com/package/@athenode/cli), is published under the same licence.
+The content of this repository is published under the [Apache-2.0 licence](LICENSE). Athenode runs as the free local `athenode` daemon or a self-hosted Athenode Pro server, and its CLI, [`@athenode/cli`](https://www.npmjs.com/package/@athenode/cli), is published under the same licence.

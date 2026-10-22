@@ -94,7 +94,7 @@ Load `methodology.md` `### Spec authoring` and follow it whenever you write spec
 Only a run started with `--from-todo` reads or changes a ToDo card, and the only changes it ever makes are recording answers to that one card's open questions and closing it: never create, reopen or otherwise move a card, and never add, edit or delete a card question.
 
 1. Read the card with `todos_get` (`id` = the card id) before anything else.
-   - If `todos_get` is not available in the session, say that the installed Athenode tools are too old for `--from-todo`, ask the user to run `npx @athenode/cli init` in the project and restart the session, and stop; nothing has been created.
+   - If `todos_get` is not available in the session, say that the installed Athenode tools are too old for `--from-todo`, ask the user to run `athenode init` in the project and restart the session, and stop; nothing has been created.
    - If the call fails, say the card id is invalid and ask whether to give a corrected card id or start a new specification instead (then run "New specification" without a card: no `todoCardId`, no close).
 2. The card's `title` and `description` are the subject. Free text given with the flag only adds context that narrows or steers the mind map; it never replaces the subject.
 3. Choose the path from the card's `status` and `resultingSpecificationId`. The card is closed when its `status` is `done` or `dismissed`, and open otherwise; read a resulting specification's `status` with `specs_get`.

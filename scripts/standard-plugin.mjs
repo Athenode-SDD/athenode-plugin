@@ -2,9 +2,9 @@
 // @athenode/cli takes: the skills, the agents and the MCP servers in the shape of Athenode's export,
 // which is what a project's copy of the standard plugin is built from.
 //
-// The twin of `loadSetup` in backend-java/scripts/default-setup/generate.mjs (`readDocument`,
-// `readItem`, `readServer`), which turns the same files into the stored standard plugin. This
-// repository cannot depend on backend-java, so the two are kept in step by hand: a change to how a
+// The twin of `loadStandardPlugin` in ssh-gateway/packages/plugins/build/fetch-standard-snapshot.mjs,
+// which reads the same files into the standard plugin's snapshot the daemon and Pro bundle. This
+// repository cannot depend on the monorepo, so the two are kept in step by hand: a change to how a
 // file is read there belongs here too.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -100,8 +100,8 @@ export function loadStandardPlugin(root) {
         const dir = join(root, 'skills', name);
         const extra = statSync(dir).isDirectory() ? readdirSync(dir).filter((file) => file !== 'SKILL.md') : [name];
         if (extra.length) {
-            // The stored standard plugin has no bundle files (generate.mjs writes none), so the plugin
-            // package has none either: a file here would be in neither, and is refused instead of dropped.
+            // A standard skill has no bundle files, so the plugin package has none either: a file here
+            // would be left out of the package, and is refused instead of dropped.
             fail(`skills/${name}: a standard skill is a directory holding only SKILL.md (found ${extra.sort().join(', ')})`);
         }
         return { ...readItem(root, 'skill', name, `skills/${name}/SKILL.md`), files: [] };
