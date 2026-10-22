@@ -1,6 +1,6 @@
 {
   "name": "athenode-plugin",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
@@ -11,7 +11,7 @@
     "test": "node scripts/validate.mjs && node --test scripts/*.test.mjs && node scripts/build-plugin.mjs --check"
   },
   "devDependencies": {
-    "@athenode/cli": "0.10.7",
+    "@athenode/cli": "0.11.0",
     "yaml": "2.8.1"
   }
 }
