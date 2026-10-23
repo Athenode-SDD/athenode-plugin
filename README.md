@@ -246,6 +246,10 @@ The plugin is also the pinned entry of Athenode's [plugin library](https://lib.a
 
 The workflow needs the repository secrets `ATHENODE_LIBRARY_CLIENT_ID` (`athenode-library-publisher`) and `ATHENODE_LIBRARY_CLIENT_SECRET`, the secret of that Keycloak client. The repository variables `ATHENODE_API_URL` (default `https://platform.athenode.com/api`), `ATHENODE_KEYCLOAK_URL` (default `https://auth.athenode.com`) and `ATHENODE_STANDARD_ENTRY_SLUG` (default `athenode`) override where it publishes.
 
+On a database without the entry, such as a fresh local stack or staging, the first upload creates it: the backend makes the repository publisher's upload to the missing standard slug the pinned standard entry, owned by the Athenode system organisation and shown publicly, at version 1. Nothing has to be set up by hand in the database.
+
+To publish into the local development stack (`docker compose up` in the root of the Athenode checkout, with this repository and `keycloak` next to each other), run `npm run library:publish:local`. It runs the publish script with the local defaults: the backend at `http://localhost:3001/api`, Keycloak at `http://localhost:8080` and the client `athenode-library-publisher` with its development secret, which it reads at run time from `../keycloak/realm-export.json` (or the file `ATHENODE_REALM_EXPORT` names) and fails with a clear message when that file is missing. Every variable you set yourself, such as `ATHENODE_API_URL` or `ATHENODE_LIBRARY_CLIENT_SECRET`, wins over its default. The realm export is imported only on the first boot of the Keycloak database, so an older local realm without the client needs the realm recreated (see the root `README.md`, Keycloak).
+
 The publish script asks the public library API as the pinned `@athenode/cli` version (the `X-Athenode-Cli-Version` header, overridden by `ATHENODE_CLI_VERSION`). The backend refuses a CLI older than its minimum, 0.11.0 since the cut-over, with `426 CLI_UPGRADE_REQUIRED`, so the pin must be at least that version before a push to `main` publishes.
 
 ## Licence
