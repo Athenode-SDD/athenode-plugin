@@ -6,7 +6,7 @@
 //
 // The loading (the subagents, the skills, the settings files with their `summary` frontmatter, the
 // rules, the MCP servers and the description) has a twin, `loadStandardPlugin` in
-// ssh-gateway/packages/plugins/build/fetch-standard-snapshot.mjs, which reads the same files into the
+// athenode/packages/plugins/build/fetch-standard-snapshot.mjs, which reads the same files into the
 // standard plugin's snapshot the daemon and Pro bundle. This repository cannot depend on the monorepo,
 // so the two are kept in step by hand: a change to how a file is read here belongs there too. A skill
 // here may carry bundle files next to its SKILL.md.

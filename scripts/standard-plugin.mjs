@@ -2,7 +2,7 @@
 // @athenode/cli takes: the skills, the agents and the MCP servers in the shape of Athenode's export,
 // which is what a project's copy of the standard plugin is built from.
 //
-// The twin of `loadStandardPlugin` in ssh-gateway/packages/plugins/build/fetch-standard-snapshot.mjs,
+// The twin of `loadStandardPlugin` in athenode/packages/plugins/build/fetch-standard-snapshot.mjs,
 // which reads the same files into the standard plugin's snapshot the daemon and Pro bundle. This
 // repository cannot depend on the monorepo, so the two are kept in step by hand: a change to how a
 // file is read there belongs here too.
