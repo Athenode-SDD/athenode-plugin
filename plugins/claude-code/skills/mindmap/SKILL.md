@@ -17,7 +17,7 @@ Build a specification through rounds of questions in which the user steers the n
 - A subject (optional, free text): what the new specification is about.
 - `--continue <spec_id>` (optional): run the continuation flow on that existing specification, reusing its recorded questions and answers, instead of creating a new one.
 - `--from-todo <card_id>` (optional): start the mind map from that ToDo card. Its title and description are the subject, the new specification is linked to the card, the card's unanswered open questions are asked before the first round, and the card is closed once the specification is prepared. Free text given with it only adds context that narrows or steers the mind map; it never replaces the subject.
-- `--auto-apply` (optional): skip the next-action question and apply the specification.
+- `--auto-apply` (optional): skip the next-action question and apply the specification; `atn:apply` still asks at its own ask points.
 - `--auto-decompose` (optional): skip the next-action question and decompose the specification; together with `--auto-apply`, the decomposed stages are applied too.
 
 `--continue` and `--from-todo` cannot be combined: if both are given, say so and stop. The auto flags combine freely with either, in any order. The auto flags only change "Next action"; every other question is still asked.
@@ -114,7 +114,7 @@ Track the topics already covered, starting with the subject. Each round:
 - Else, if only `--auto-decompose` was given: do the same, but invoke `atn:decompose` with the id only; its own questions stay interactive.
 - Else, if only `--auto-apply` was given: invoke `atn:apply` with the id and report its outcome.
 - Otherwise ask what to do next:
-  - **Apply now** (`atn:apply` runs unattended, except that it asks about external blockers and, at the end of the run, which out-of-scope items to turn into ToDo cards): invoke `atn:apply` with the id and report its outcome.
+  - **Apply now** (`atn:apply` runs unattended except at its own ask points: a settings rule that says to ask, a blocked leaf plan, a test failure, external blockers and, at the end of the run, which out-of-scope items to turn into ToDo cards): invoke `atn:apply` with the id and report its outcome.
   - **Decompose into stages**: spawn `atn:spec-decomposer` with the id, show its `## Proposed child specifications` (titles and one-line scopes) and ask "Yes, create these as drafts" / "No, skip decomposition for now". If confirmed, invoke `atn:decompose` with the id and report the parent and every finalized child (id and title) from its report; otherwise stop.
   - **Nothing else**: stop.
 
