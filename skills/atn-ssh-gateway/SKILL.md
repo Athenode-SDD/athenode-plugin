@@ -38,7 +38,7 @@ optionally with health checks.
 | Rest of a cut output | `exec_output` | `outputId`, `stream`, `offset` (from `stdoutNextOffset` / `nextOffset`), optional `limit`. |
 | Long-running work | `start_job`, `job_status`, `job_logs`, `cancel_job` | See "Long-running work". |
 | Read / list / write files on the server | `read_file`, `list_dir`, `write_file` | SFTP. `read_file` is for small files. |
-| Move files between the local machine and the server | `upload`, `download` | Local paths absolute; the local parent directory must exist. |
+| Move files between your machine and the server | `upload`, `download` | Return a one-time URL and a `curl` command to run yourself; see "Files". |
 | Server description | `set_connection_description` | Max 4000 characters; replaces the whole text. |
 | Services | `add_service`, `update_service`, `remove_service` | Name ≤ 100, description ≤ 1000 characters, optional `check`. |
 | Health history / run a check now | `service_health`, `run_service_check` | |
@@ -75,8 +75,17 @@ before starting it again.
 
 - Inspect with `list_dir` and `read_file` (text or binary). `read_file` returns the whole file in one result — for
   anything larger than a few MB use `download`. Reading a directory with `read_file` fails with a generic SFTP error.
-- `write_file` for small text files; `upload` / `download` for real files between the machine you run on and the
-  server (create the local target directory first).
+- `write_file` for small text files; `upload` / `download` for real files (binary, large) between the machine you run
+  on and the server. They take only `remotePath` (`upload` also an optional `sha256` of your file, which the received
+  bytes must match) and return `{url, method, headers, expiresAt, maxBytes, curl}`, without moving anything yet:
+  - Run the returned `curl` yourself, on your own machine, with your own absolute path in place of `<LOCAL_FILE>`
+    (`curl --fail -T <LOCAL_FILE> …` uploads it, `curl --fail -o <LOCAL_FILE> …` downloads to it; create the local
+    target directory first). Keep `--fail`, so an error is an error, and check curl's exit code.
+  - The `X-Athenode-Transfer` header is a secret: never share it, log it or write it into files or messages.
+  - The URL works once and expires (`expiresAt`, 10 minutes by default): if it was used or expired, call the tool
+    again. Files above `maxBytes` (1 GiB by default) are refused.
+  - An upload replaces an existing file (keeping its mode) only once the whole file arrived; the remote parent
+    directory must exist. The PUT answers `{bytes, sha256}`: compare the hash with your file's.
 - If the server's files are managed elsewhere (configuration management, a git repo, a deploy pipeline), change them
   there, not on the server; a direct edit is an emergency measure to be mirrored back right away.
 
