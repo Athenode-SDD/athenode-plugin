@@ -181,10 +181,10 @@ describe('the adapter', () => {
         assert.deepEqual(loadStandardPlugin(root), plugin);
     });
 
-    test('reads this repository: seven atn- skills, ten agents and the athenode server', () => {
+    test('reads this repository: nine atn- skills, ten agents and the athenode server', () => {
         const plugin = loadStandardPlugin(ROOT);
         assert.equal(plugin.slug, 'atn');
-        assert.equal(plugin.skills.length, 7);
+        assert.equal(plugin.skills.length, 9);
         assert.ok(plugin.skills.every((skill) => skill.name.startsWith('atn-') && skill.files.length === 0));
         assert.equal(plugin.agents.length, 10);
         assert.deepEqual(plugin.mcpServers.map((server) => server.name), ['athenode']);
@@ -503,10 +503,10 @@ describe('the build', () => {
     test('builds this repository: prefix-free skills, renamed references, no rules and no hook', { skip }, () => {
         const files = buildShowcase(ROOT, generator);
         const paths = [...files.keys()];
-        assert.equal(paths.length, 22);
+        assert.equal(paths.length, 24);
         assert.ok(paths.every((path) => path === MARKETPLACE_FILE || path.startsWith(`${PLUGIN_DIR}/`)));
         const skills = paths.filter((path) => path.startsWith(`${PLUGIN_DIR}/skills/`)).map((path) => path.split('/')[3]).sort();
-        assert.deepEqual(skills, ['apply', 'decompose', 'manage', 'mindmap', 'settings', 'todo-dequeue', 'todo-enqueue']);
+        assert.deepEqual(skills, ['apply', 'decompose', 'manage', 'mindmap', 'server-init', 'settings', 'ssh-gateway', 'todo-dequeue', 'todo-enqueue']);
         assert.equal(paths.filter((path) => path.startsWith(`${PLUGIN_DIR}/agents/`)).length, 10);
 
         assert.match(readFileSync(join(ROOT, 'skills/atn-mindmap/SKILL.md'), 'utf8'), /`atn-apply`/);

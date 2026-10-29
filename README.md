@@ -22,7 +22,7 @@
 
 [Athenode](https://athenode.com) is a spec-driven development platform. You grow a tree of specifications (specs), from the whole application down to a task an agent finishes in one go, and your own AI coding tool builds from it.
 
-This repository holds the standard Athenode plugin, the plugin every new Athenode project starts with. A plugin is a named bundle of what your AI coding tools work with: skills, agents, rules, MCP servers and plugin files. The standard plugin contains 7 skills, 10 agents, 1 rules text, 1 MCP server and 5 settings files, and one command installs it into Claude Code, Codex, Cursor or any other of the [30 supported AI tools](https://athenode.com/docs/supported-ai-tools).
+This repository holds the standard Athenode plugin, the plugin every new Athenode project starts with. A plugin is a named bundle of what your AI coding tools work with: skills, agents, rules, MCP servers and plugin files. The standard plugin contains 9 skills, 10 agents, 1 rules text, 1 MCP server and 5 settings files, and one command installs it into Claude Code, Codex, Cursor or any other of the [30 supported AI tools](https://athenode.com/docs/supported-ai-tools).
 
 ## What you get
 
@@ -107,6 +107,10 @@ A ToDo card is a short note of work to do later: a follow-up, tech debt, a bug o
 ### 6. Change the plugin with `/atn:manage`
 
 `/atn:manage` takes no part in building a spec. You use it when you want to change what your agents work with: you describe the change, and the skill lists, creates, changes or deletes plugins and their skills, agents, rules, MCP servers and files, imports external plugins, and works with the plugin library.
+
+### 7. Work on your servers through the SSH Gateway
+
+The SSH Gateway of the Athenode service holds the connections to your servers and runs every command on them with an audit log. It also keeps each server's documentation: a description and the services running there, optionally with health checks. `/atn:server-init` documents a connected server from scratch, inspecting it without changing anything, and `/atn:ssh-gateway` holds the rules your agent follows whenever a task touches a server, such as keeping that documentation in step with each change.
 
 ### Where to read more
 
