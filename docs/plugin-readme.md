@@ -1,6 +1,6 @@
 # Athenode for Claude Code
 
-[Athenode](https://athenode.com) is a spec-driven development platform. You grow a tree of specifications (specs), from the whole application down to a task an agent finishes in one go, and Claude Code builds from it. This plugin package, `atn`, is the standard Athenode plugin for Claude Code: 7 skills, 10 agents and the Athenode MCP server.
+[Athenode](https://athenode.com) is a spec-driven development platform. You grow a tree of specifications (specs), from the whole application down to a task an agent finishes in one go, and Claude Code builds from it. This plugin package, `atn`, is the standard Athenode plugin for Claude Code: 9 skills, 10 agents and the Athenode MCP server.
 
 ## Requirements
 
@@ -28,6 +28,8 @@ On Claude Code before 2.1.275, add the marketplace first with `/plugin marketpla
 | `/atn:todo-enqueue` | Adds a ToDo card: a follow-up, tech debt, a bug or an idea. |
 | `/atn:todo-dequeue` | Works through the open ToDo cards one by one. |
 | `/atn:manage` | Lists, creates, changes or deletes plugins and their skills, agents, rules, MCP servers and files, and imports external plugins. |
+| `/atn:ssh-gateway` | The rules for working on a remote server through the SSH Gateway: commands, long-running jobs, files, and the server's documentation and health checks. |
+| `/atn:server-init` | Documents a server connected to the SSH Gateway from scratch: inspects it read-only, then writes its description and services, with health checks if you want them. |
 
 The 10 agents (`atn:spec-implementer`, `atn:spec-implementation-reviewer` and the others) are run by the skills; you do not run them yourself.
 
@@ -47,6 +49,7 @@ The skills pre-approve no shell commands: Claude Code asks before each one they 
 - **What it sends.** What the skills write to your Athenode project on the daemon: specs with their questions, answers, implementation plans, statuses and blockers, ToDo cards, and the plugin with its skills, agents, rules, MCP servers and settings files. It sends no source code by itself; a spec or a plan holds what Claude writes into it, which can quote your code.
 - **What it fetches.** Your project's specs, ToDo cards and plugins. The skills read the project's settings files (`settings/*.md`) from Athenode and follow them: they hold the workflow choices you made with `/atn:settings` and the rules you added yourself, and you can read and edit them in the web app at any time.
 - **The plugin library.** `/atn:manage` can browse plugins that other Athenode projects published, and add or merge one into your project, only when you ask for it. It imports an external plugin from a repository or a folder only when you name it. Publishing a plugin of yours to the library, which makes it public, is done only after you confirm it.
+- **Your servers.** `/atn:ssh-gateway` and `/atn:server-init` act on a server only through the SSH Gateway of the daemon, over the connections you created there; the gateway runs each command on the server and keeps an audit log. `/atn:server-init` only inspects the server. The skills write each server's description, services and health checks to the gateway, and keep secrets out of commands and descriptions.
 - **Nothing else.** No hooks, no telemetry, no other network calls. The plugin does not change Claude Code's permission settings.
 
 ## License
