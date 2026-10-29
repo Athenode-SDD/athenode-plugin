@@ -43,7 +43,7 @@ Break an existing specification into one level of draft child stages, collect th
 ## Arguments
 
 - `$1`: the id of the specification to decompose.
-- `--auto-apply` (optional, in any position): once every child is finalized, apply the parent instead of asking what to do next. It suppresses no other question.
+- `--auto-apply` (optional, in any position): once every child is finalized, apply the parent instead of asking what to do next. It suppresses no other question, and `atn-apply` still asks at its own ask points.
 
 ## Flow
 
@@ -65,7 +65,7 @@ Break an existing specification into one level of draft child stages, collect th
 9. Next action:
    - If `--auto-apply` was given, invoke `atn-apply` with the parent id and report its outcome.
    - Otherwise ask what to do next:
-     - **Apply now** (`atn-apply` runs unattended, except that it asks about external blockers and, at the end of the run, which out-of-scope items to turn into ToDo cards): invoke `atn-apply` with the parent id and report its outcome.
+     - **Apply now** (`atn-apply` runs unattended except at its own ask points: a settings rule that says to ask, a blocked leaf plan, a test failure, external blockers and, at the end of the run, which out-of-scope items to turn into ToDo cards): invoke `atn-apply` with the parent id and report its outcome.
      - **Decompose a stage further**: ask a multiple-choice question over every created child (title and id per option), even when there is only one. Invoke `atn-decompose` with each selected child id, one after another (each run is interactive), then give one aggregated report.
      - **Nothing else**: stop.
 
